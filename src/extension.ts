@@ -2,11 +2,41 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 
 class ArcadiaViewProvider implements vscode.WebviewViewProvider {
+	private nextId = 1;
+	private terminals = new Map<number, vscode.Terminal>();
+
 	constructor(private readonly extensionUri: vscode.Uri) {}
 
 	resolveWebviewView(webviewView: vscode.WebviewView) {
 		webviewView.webview.options = { enableScripts: true };
 		webviewView.webview.html = getWebviewContent(webviewView.webview, this.extensionUri);
+
+		webviewView.webview.onDidReceiveMessage((message) => {
+			if (message.type === 'openClaude') {
+				const id = this.nextId++;
+				const terminal = vscode.window.createTerminal(`Claude Code #${id}`);
+				terminal.show();
+				terminal.sendText('claude');
+				this.terminals.set(id, terminal);
+				webviewView.webview.postMessage({ type: 'agentCreated', id });
+			} else if (message.type === 'focusAgent') {
+				const terminal = this.terminals.get(message.id);
+				if (terminal) {
+					terminal.show();
+				}
+			}
+		});
+
+		// Clean up buttons when terminals are closed
+		vscode.window.onDidCloseTerminal((closed) => {
+			for (const [id, terminal] of this.terminals) {
+				if (terminal === closed) {
+					this.terminals.delete(id);
+					webviewView.webview.postMessage({ type: 'agentClosed', id });
+					break;
+				}
+			}
+		});
 	}
 }
 
