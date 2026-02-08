@@ -1,9 +1,6 @@
 export const TILE_SIZE = 16
-export const SCALE = 2
 export const MAP_COLS = 20
 export const MAP_ROWS = 11
-export const CANVAS_W = MAP_COLS * TILE_SIZE * SCALE
-export const CANVAS_H = MAP_ROWS * TILE_SIZE * SCALE
 
 export const TileType = {
   WALL: 0,

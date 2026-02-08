@@ -130,7 +130,7 @@ All files live under `webview-ui/src/office/`:
 
 ```
 office/
-  types.ts            — Constants (TILE_SIZE=16, SCALE=2, MAP 20x11), interfaces, FurnitureType, EditTool, OfficeLayout
+  types.ts            — Constants (TILE_SIZE=16, MAP 20x11), interfaces, FurnitureType, EditTool, OfficeLayout
   sprites.ts          — Hardcoded pixel data for characters (6 palettes), furniture, tiles (desk, bookshelf, plant, cooler, whiteboard, chair, PC, lamp)
   spriteCache.ts      — Renders SpriteData → offscreen canvas, WeakMap cache by reference
   furnitureCatalog.ts — FurnitureType → sprite/footprint/isDesk catalog + getCatalogEntry()
@@ -151,11 +151,15 @@ office/
 
 **Game state outside React**: An `OfficeState` class (created lazily on `layoutLoaded`, stored in `officeStateRef`) holds the `OfficeLayout`, derived tile map, furniture instances, desk slots, and character state. It's updated imperatively by message handlers and read by the canvas every frame. React state is only used for HTML overlays (tool tooltips, editor toolbar). This avoids re-renders in the hot path.
 
-**Sprite system**: Pixel data stored as 2D arrays of hex color strings (`SpriteData`). Rendered once to offscreen canvases at SCALE (2x) and cached via `WeakMap`. Characters use palette templates (`'skin'`, `'shirt'`, etc.) resolved at creation time into concrete hex colors. 6 distinct color palettes for agents.
+**Pixel-perfect rendering**: All rendering is done directly in device pixels — no `ctx.scale(dpr)` transform. The `zoom` level is an integer (device pixels per sprite pixel), ensuring every sprite pixel maps to exactly NxN device pixels with no fractional coordinates. Default zoom = `Math.round(2 * devicePixelRatio)`. Users can zoom in/out via Ctrl+mousewheel or +/- buttons (range 1x–10x). The sprite cache (`spriteCache.ts`) stores per-zoom WeakMaps so different zoom levels (e.g., toolbar thumbnails at 2x vs canvas at dynamic zoom) don't thrash each other.
+
+**Pan**: Middle-mouse-button drag pans the viewport. Pan offset is stored as a `panRef` (device pixels) shared between `OfficeCanvas` and `AgentLabels`. Updated imperatively during drag (no React re-renders). The render loop and AgentLabels both read `panRef.current` each frame, so the canvas and HTML labels stay in sync.
+
+**Sprite system**: Pixel data stored as 2D arrays of hex color strings (`SpriteData`). Rendered to offscreen canvases at the current zoom level and cached via per-zoom `WeakMap`s. Characters use palette templates (`'skin'`, `'shirt'`, etc.) resolved at creation time into concrete hex colors. 6 distinct color palettes for agents.
 
 **Z-ordering**: All entities (furniture + characters) merged into a single array, sorted by Y-position before drawing. Lower on screen = drawn later = appears in front.
 
-**Canvas sizing**: Panel is typically 200-400px tall. At SCALE=2, each tile row = 32px. Map is 20 cols x 11 rows = 640x352 px at 2x. Centered in the canvas viewport. ResizeObserver + DPR scaling for crisp rendering on high-DPI displays.
+**Canvas sizing**: Panel is typically 200-400px tall. Canvas backing store = CSS size × DPR. Map is 20 cols × 11 rows × TILE_SIZE × zoom device pixels. Centered in the canvas viewport. ResizeObserver tracks container size. Character draw coordinates are `Math.round()`'d to integer device pixels for crisp rendering.
 
 ### Data flow
 
@@ -240,6 +244,8 @@ Toggle-based edit mode for customizing the office layout:
 - **"+ Agent" button** (top-left) creates new terminal + character
 - **"Sessions" button** opens JSONL folder in file explorer
 - **"Edit" button** (top-left) toggles layout editor mode
+- **Zoom** +/- buttons (top-left) or Ctrl+mousewheel to change integer zoom level (1x–10x)
+- **Pan** middle-mouse-button drag to pan the viewport when zoomed in
 
 ### TypeScript constraints
 

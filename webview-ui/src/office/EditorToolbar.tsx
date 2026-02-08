@@ -134,7 +134,7 @@ export function EditorToolbar({
       {activeTool === EditTool.FURNITURE_PLACE && (
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
           {FURNITURE_CATALOG.map((entry) => {
-            const cached = getCachedSprite(entry.sprite)
+            const cached = getCachedSprite(entry.sprite, 2)
             const thumbSize = 28
             const isSelected = selectedFurnitureType === entry.type
             return (

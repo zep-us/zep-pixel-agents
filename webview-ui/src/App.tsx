@@ -4,11 +4,17 @@ import { OfficeCanvas } from './office/OfficeCanvas.js'
 import { ToolOverlay } from './office/ToolOverlay.js'
 import { EditorToolbar } from './office/EditorToolbar.js'
 import { EditorState } from './office/editorState.js'
-import { EditTool } from './office/types.js'
+import { EditTool, TILE_SIZE, MAP_COLS, MAP_ROWS } from './office/types.js'
 import type { OfficeLayout, FurnitureType, EditTool as EditToolType, TileType as TileTypeVal } from './office/types.js'
 import { createDefaultLayout } from './office/layoutSerializer.js'
 import { paintTile, placeFurniture, removeFurniture, canPlaceFurniture } from './office/editorActions.js'
 import { getCatalogEntry } from './office/furnitureCatalog.js'
+
+/** Compute a default integer zoom level (device pixels per sprite pixel) */
+function defaultZoom(): number {
+  const dpr = window.devicePixelRatio || 1
+  return Math.max(1, Math.round(2 * dpr))
+}
 
 declare function acquireVsCodeApi(): { postMessage(msg: unknown): void }
 
@@ -61,11 +67,13 @@ function App() {
   const [subagentTools, setSubagentTools] = useState<Record<number, Record<string, ToolActivity[]>>>({})
   const [isEditMode, setIsEditMode] = useState(false)
   const [editorTick, setEditorTick] = useState(0) // force re-render for editor state changes
+  const [zoom, setZoom] = useState(defaultZoom)
   const [hoveredAgent, setHoveredAgent] = useState<number | null>(null)
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 })
   const [layoutReady, setLayoutReady] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const panRef = useRef({ x: 0, y: 0 })
 
   // Debounced layout save
   const saveLayout = useCallback((layout: OfficeLayout) => {
@@ -338,6 +346,10 @@ function App() {
     editorState.reset()
   }, [applyEdit])
 
+  const handleZoomChange = useCallback((newZoom: number) => {
+    setZoom(Math.max(1, Math.min(10, newZoom)))
+  }, [])
+
   const handleToggleEditMode = useCallback(() => {
     setIsEditMode((prev) => {
       const next = !prev
@@ -426,6 +438,9 @@ function App() {
         editorState={editorState}
         onEditorTileAction={handleEditorTileAction}
         editorTick={_editorTick}
+        zoom={zoom}
+        onZoomChange={handleZoomChange}
+        panRef={panRef}
       />
 
       {/* Floating buttons in top-left corner */}
@@ -490,6 +505,51 @@ function App() {
         >
           Edit
         </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 4 }}>
+          <button
+            onClick={() => handleZoomChange(zoom - 1)}
+            disabled={zoom <= 1}
+            style={{
+              width: 22,
+              height: 22,
+              fontSize: '14px',
+              lineHeight: '14px',
+              padding: 0,
+              background: 'var(--vscode-button-secondaryBackground, #3A3D41)',
+              color: 'var(--vscode-button-secondaryForeground, #ccc)',
+              border: 'none',
+              borderRadius: 3,
+              cursor: zoom <= 1 ? 'default' : 'pointer',
+              opacity: zoom <= 1 ? 0.4 : 0.9,
+            }}
+            title="Zoom out (Ctrl+Scroll)"
+          >
+            -
+          </button>
+          <span style={{ fontSize: '11px', color: 'var(--vscode-foreground)', minWidth: 20, textAlign: 'center', opacity: 0.7 }}>
+            {zoom}x
+          </span>
+          <button
+            onClick={() => handleZoomChange(zoom + 1)}
+            disabled={zoom >= 10}
+            style={{
+              width: 22,
+              height: 22,
+              fontSize: '14px',
+              lineHeight: '14px',
+              padding: 0,
+              background: 'var(--vscode-button-secondaryBackground, #3A3D41)',
+              color: 'var(--vscode-button-secondaryForeground, #ccc)',
+              border: 'none',
+              borderRadius: 3,
+              cursor: zoom >= 10 ? 'default' : 'pointer',
+              opacity: zoom >= 10 ? 0.4 : 0.9,
+            }}
+            title="Zoom in (Ctrl+Scroll)"
+          >
+            +
+          </button>
+        </div>
       </div>
 
       {/* Editor toolbar */}
@@ -509,7 +569,7 @@ function App() {
       )}
 
       {/* Agent name labels above characters */}
-      <AgentLabels officeState={officeState} agents={agents} agentStatuses={agentStatuses} containerRef={containerRef} />
+      <AgentLabels officeState={officeState} agents={agents} agentStatuses={agentStatuses} containerRef={containerRef} zoom={zoom} panRef={panRef} />
 
       {/* Hover tooltip */}
       <ToolOverlay
@@ -530,11 +590,15 @@ function AgentLabels({
   agents,
   agentStatuses,
   containerRef,
+  zoom,
+  panRef,
 }: {
   officeState: OfficeState
   agents: number[]
   agentStatuses: Record<number, string>
   containerRef: React.RefObject<HTMLDivElement | null>
+  zoom: number
+  panRef: React.RefObject<{ x: number; y: number }>
 }) {
   const [, setTick] = useState(0)
   useEffect(() => {
@@ -550,10 +614,14 @@ function AgentLabels({
   const el = containerRef.current
   if (!el) return null
   const rect = el.getBoundingClientRect()
-  const mapW = 20 * 16 * 2
-  const mapH = 11 * 16 * 2
-  const offsetX = Math.floor((rect.width - mapW) / 2)
-  const offsetY = Math.floor((rect.height - mapH) / 2)
+  const dpr = window.devicePixelRatio || 1
+  // Compute device pixel offset (same math as renderFrame, including pan)
+  const canvasW = Math.round(rect.width * dpr)
+  const canvasH = Math.round(rect.height * dpr)
+  const mapW = MAP_COLS * TILE_SIZE * zoom
+  const mapH = MAP_ROWS * TILE_SIZE * zoom
+  const deviceOffsetX = Math.floor((canvasW - mapW) / 2) + Math.round(panRef.current.x)
+  const deviceOffsetY = Math.floor((canvasH - mapH) / 2) + Math.round(panRef.current.y)
 
   return (
     <>
@@ -561,8 +629,9 @@ function AgentLabels({
         const ch = officeState.characters.get(id)
         if (!ch) return null
 
-        const screenX = offsetX + ch.x * 2
-        const screenY = offsetY + (ch.y - 24) * 2
+        // Character position: device pixels → CSS pixels
+        const screenX = (deviceOffsetX + ch.x * zoom) / dpr
+        const screenY = (deviceOffsetY + (ch.y - 24) * zoom) / dpr
 
         const status = agentStatuses[id]
         const isWaiting = status === 'waiting'

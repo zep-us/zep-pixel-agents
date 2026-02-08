@@ -1,4 +1,4 @@
-import { TileType, TILE_SIZE, SCALE, MAP_COLS, MAP_ROWS } from './types.js'
+import { TileType, TILE_SIZE, MAP_COLS, MAP_ROWS } from './types.js'
 import type { TileType as TileTypeVal, FurnitureInstance, Character, SpriteData } from './types.js'
 import { getCachedSprite } from './spriteCache.js'
 import { getCharacterSprites } from './sprites.js'
@@ -38,8 +38,9 @@ export function renderTileGrid(
   tileMap: TileTypeVal[][],
   offsetX: number,
   offsetY: number,
+  zoom: number,
 ): void {
-  const s = TILE_SIZE * SCALE
+  const s = TILE_SIZE * zoom
   for (let r = 0; r < MAP_ROWS; r++) {
     for (let c = 0; c < MAP_COLS; c++) {
       ctx.fillStyle = getTileColor(tileMap[r][c], c, r)
@@ -59,16 +60,19 @@ export function renderScene(
   characters: Character[],
   offsetX: number,
   offsetY: number,
+  zoom: number,
 ): void {
   const drawables: ZDrawable[] = []
 
   // Furniture
   for (const f of furniture) {
-    const cached = getCachedSprite(f.sprite)
+    const cached = getCachedSprite(f.sprite, zoom)
+    const fx = offsetX + f.x * zoom
+    const fy = offsetY + f.y * zoom
     drawables.push({
       zY: f.zY,
       draw: (c) => {
-        c.drawImage(cached, offsetX + f.x * SCALE, offsetY + f.y * SCALE)
+        c.drawImage(cached, fx, fy)
       },
     })
   }
@@ -77,10 +81,10 @@ export function renderScene(
   for (const ch of characters) {
     const sprites = getCharacterSprites(ch.palette)
     const spriteData = getCharacterSprite(ch, sprites)
-    const cached = getCachedSprite(spriteData)
-    // Anchor at bottom-center of character
-    const drawX = offsetX + ch.x * SCALE - cached.width / 2
-    const drawY = offsetY + ch.y * SCALE - cached.height
+    const cached = getCachedSprite(spriteData, zoom)
+    // Anchor at bottom-center of character — round to integer device pixels
+    const drawX = Math.round(offsetX + ch.x * zoom - cached.width / 2)
+    const drawY = Math.round(offsetY + ch.y * zoom - cached.height)
     drawables.push({
       zY: ch.y, // sort by feet position
       draw: (c) => {
@@ -103,20 +107,21 @@ export function renderGridOverlay(
   ctx: CanvasRenderingContext2D,
   offsetX: number,
   offsetY: number,
+  zoom: number,
 ): void {
-  const s = TILE_SIZE * SCALE
+  const s = TILE_SIZE * zoom
   ctx.strokeStyle = 'rgba(255,255,255,0.12)'
   ctx.lineWidth = 1
   ctx.beginPath()
-  // Vertical lines
+  // Vertical lines — offset by 0.5 for crisp 1px lines
   for (let c = 0; c <= MAP_COLS; c++) {
-    const x = offsetX + c * s
+    const x = offsetX + c * s + 0.5
     ctx.moveTo(x, offsetY)
     ctx.lineTo(x, offsetY + MAP_ROWS * s)
   }
   // Horizontal lines
   for (let r = 0; r <= MAP_ROWS; r++) {
-    const y = offsetY + r * s
+    const y = offsetY + r * s + 0.5
     ctx.moveTo(offsetX, y)
     ctx.lineTo(offsetX + MAP_COLS * s, y)
   }
@@ -131,10 +136,11 @@ export function renderGhostPreview(
   valid: boolean,
   offsetX: number,
   offsetY: number,
+  zoom: number,
 ): void {
-  const cached = getCachedSprite(sprite)
-  const x = offsetX + col * TILE_SIZE * SCALE
-  const y = offsetY + row * TILE_SIZE * SCALE
+  const cached = getCachedSprite(sprite, zoom)
+  const x = offsetX + col * TILE_SIZE * zoom
+  const y = offsetY + row * TILE_SIZE * zoom
   ctx.save()
   ctx.globalAlpha = 0.5
   ctx.drawImage(cached, x, y)
@@ -153,13 +159,12 @@ export function renderSelectionHighlight(
   h: number,
   offsetX: number,
   offsetY: number,
+  zoom: number,
 ): void {
-  const s = TILE_SIZE * SCALE
+  const s = TILE_SIZE * zoom
   const x = offsetX + col * s
   const y = offsetY + row * s
   ctx.save()
-  ctx.strokeStyle = 'var(--vscode-focusBorder, #007fd4)'
-  // Fallback since CSS vars don't work in canvas
   ctx.strokeStyle = '#007fd4'
   ctx.lineWidth = 2
   ctx.setLineDash([4, 3])
@@ -187,33 +192,36 @@ export function renderFrame(
   tileMap: TileTypeVal[][],
   furniture: FurnitureInstance[],
   characters: Character[],
+  zoom: number,
+  panX: number,
+  panY: number,
   editor?: EditorRenderState,
 ): { offsetX: number; offsetY: number } {
   // Clear
   ctx.clearRect(0, 0, canvasWidth, canvasHeight)
 
-  // Center map in viewport
-  const mapW = MAP_COLS * TILE_SIZE * SCALE
-  const mapH = MAP_ROWS * TILE_SIZE * SCALE
-  const offsetX = Math.floor((canvasWidth - mapW) / 2)
-  const offsetY = Math.floor((canvasHeight - mapH) / 2)
+  // Center map in viewport + pan offset (integer device pixels)
+  const mapW = MAP_COLS * TILE_SIZE * zoom
+  const mapH = MAP_ROWS * TILE_SIZE * zoom
+  const offsetX = Math.floor((canvasWidth - mapW) / 2) + Math.round(panX)
+  const offsetY = Math.floor((canvasHeight - mapH) / 2) + Math.round(panY)
 
   // Draw tiles
-  renderTileGrid(ctx, tileMap, offsetX, offsetY)
+  renderTileGrid(ctx, tileMap, offsetX, offsetY, zoom)
 
   // Draw furniture + characters (z-sorted)
-  renderScene(ctx, furniture, characters, offsetX, offsetY)
+  renderScene(ctx, furniture, characters, offsetX, offsetY, zoom)
 
   // Editor overlays
   if (editor) {
     if (editor.showGrid) {
-      renderGridOverlay(ctx, offsetX, offsetY)
+      renderGridOverlay(ctx, offsetX, offsetY, zoom)
     }
     if (editor.ghostSprite && editor.ghostCol >= 0 && editor.ghostRow >= 0) {
-      renderGhostPreview(ctx, editor.ghostSprite, editor.ghostCol, editor.ghostRow, editor.ghostValid, offsetX, offsetY)
+      renderGhostPreview(ctx, editor.ghostSprite, editor.ghostCol, editor.ghostRow, editor.ghostValid, offsetX, offsetY, zoom)
     }
     if (editor.hasSelection) {
-      renderSelectionHighlight(ctx, editor.selectedCol, editor.selectedRow, editor.selectedW, editor.selectedH, offsetX, offsetY)
+      renderSelectionHighlight(ctx, editor.selectedCol, editor.selectedRow, editor.selectedW, editor.selectedH, offsetX, offsetY, zoom)
     }
   }
 
