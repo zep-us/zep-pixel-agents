@@ -20,6 +20,8 @@ export class OfficeState {
   walkableTiles: Array<{ col: number; row: number }>
   characters: Map<number, Character> = new Map()
   selectedAgentId: number | null = null
+  hoveredAgentId: number | null = null
+  hoveredTile: { col: number; row: number } | null = null
   private nextPalette = 0
 
   constructor(layout?: OfficeLayout) {

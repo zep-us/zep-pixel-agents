@@ -62,6 +62,7 @@ export function renderScene(
   offsetY: number,
   zoom: number,
   selectedAgentId: number | null,
+  hoveredAgentId: number | null,
 ): void {
   const drawables: ZDrawable[] = []
 
@@ -87,8 +88,11 @@ export function renderScene(
     const drawX = Math.round(offsetX + ch.x * zoom - cached.width / 2)
     const drawY = Math.round(offsetY + ch.y * zoom - cached.height)
 
-    // White outline behind selected character
-    if (selectedAgentId !== null && ch.id === selectedAgentId) {
+    // White outline: full opacity for selected, 50% for hover
+    const isSelected = selectedAgentId !== null && ch.id === selectedAgentId
+    const isHovered = hoveredAgentId !== null && ch.id === hoveredAgentId
+    if (isSelected || isHovered) {
+      const outlineAlpha = isSelected ? 1.0 : 0.5
       const outlineData = getOutlineSprite(spriteData)
       const outlineCached = getCachedSprite(outlineData, zoom)
       const olDrawX = drawX - zoom // 1 sprite-pixel offset, scaled
@@ -96,7 +100,10 @@ export function renderScene(
       drawables.push({
         zY: ch.y - 0.001, // sort just before character
         draw: (c) => {
+          c.save()
+          c.globalAlpha = outlineAlpha
           c.drawImage(outlineCached, olDrawX, olDrawY)
+          c.restore()
         },
       })
     }
@@ -124,30 +131,35 @@ export function renderSeatIndicators(
   seats: Map<string, Seat>,
   characters: Map<number, Character>,
   selectedAgentId: number | null,
+  hoveredTile: { col: number; row: number } | null,
   offsetX: number,
   offsetY: number,
   zoom: number,
 ): void {
-  if (selectedAgentId === null) return
+  if (selectedAgentId === null || !hoveredTile) return
   const selectedChar = characters.get(selectedAgentId)
   if (!selectedChar) return
 
-  const s = TILE_SIZE * zoom
-  const pulseAlpha = Math.sin(performance.now() / 500) * 0.1 + 0.25
-
+  // Only show indicator for the hovered seat tile
   for (const [uid, seat] of seats) {
+    if (seat.seatCol !== hoveredTile.col || seat.seatRow !== hoveredTile.row) continue
+
+    const s = TILE_SIZE * zoom
     const x = offsetX + seat.seatCol * s
     const y = offsetY + seat.seatRow * s
 
     if (selectedChar.seatId === uid) {
-      // Current seat — blue overlay
-      ctx.fillStyle = 'rgba(0, 127, 212, 0.3)'
-      ctx.fillRect(x, y, s, s)
+      // Selected agent's own seat — blue
+      ctx.fillStyle = 'rgba(0, 127, 212, 0.35)'
     } else if (!seat.assigned) {
-      // Available seat — green pulsing overlay
-      ctx.fillStyle = `rgba(0, 200, 80, ${pulseAlpha})`
-      ctx.fillRect(x, y, s, s)
+      // Available seat — green
+      ctx.fillStyle = 'rgba(0, 200, 80, 0.35)'
+    } else {
+      // Busy (assigned to another agent) — red
+      ctx.fillStyle = 'rgba(220, 50, 50, 0.35)'
     }
+    ctx.fillRect(x, y, s, s)
+    break
   }
 }
 
@@ -237,6 +249,8 @@ export interface EditorRenderState {
 
 export interface SelectionRenderState {
   selectedAgentId: number | null
+  hoveredAgentId: number | null
+  hoveredTile: { col: number; row: number } | null
   seats: Map<string, Seat>
   characters: Map<number, Character>
 }
@@ -268,12 +282,13 @@ export function renderFrame(
 
   // Seat indicators (below furniture/characters, on top of floor)
   if (selection) {
-    renderSeatIndicators(ctx, selection.seats, selection.characters, selection.selectedAgentId, offsetX, offsetY, zoom)
+    renderSeatIndicators(ctx, selection.seats, selection.characters, selection.selectedAgentId, selection.hoveredTile, offsetX, offsetY, zoom)
   }
 
   // Draw furniture + characters (z-sorted)
   const selectedId = selection?.selectedAgentId ?? null
-  renderScene(ctx, furniture, characters, offsetX, offsetY, zoom, selectedId)
+  const hoveredId = selection?.hoveredAgentId ?? null
+  renderScene(ctx, furniture, characters, offsetX, offsetY, zoom, selectedId, hoveredId)
 
   // Editor overlays
   if (editor) {

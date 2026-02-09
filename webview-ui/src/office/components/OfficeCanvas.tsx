@@ -109,9 +109,33 @@ export function OfficeCanvas({ officeState, onHover, onClick, isEditMode, editor
           }
         }
 
+        // Camera follow: smoothly center on selected agent
+        if (officeState.selectedAgentId !== null) {
+          const followCh = officeState.characters.get(officeState.selectedAgentId)
+          if (followCh) {
+            const mapW = MAP_COLS * TILE_SIZE * zoom
+            const mapH = MAP_ROWS * TILE_SIZE * zoom
+            const targetX = mapW / 2 - followCh.x * zoom
+            const targetY = mapH / 2 - followCh.y * zoom
+            const lerpFactor = 0.1
+            const dx = targetX - panRef.current.x
+            const dy = targetY - panRef.current.y
+            if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
+              panRef.current = { x: targetX, y: targetY }
+            } else {
+              panRef.current = {
+                x: panRef.current.x + dx * lerpFactor,
+                y: panRef.current.y + dy * lerpFactor,
+              }
+            }
+          }
+        }
+
         // Build selection render state
         const selectionRender: SelectionRenderState = {
           selectedAgentId: officeState.selectedAgentId,
+          hoveredAgentId: officeState.hoveredAgentId,
+          hoveredTile: officeState.hoveredTile,
           seats: officeState.seats,
           characters: officeState.characters,
         }
@@ -209,26 +233,26 @@ export function OfficeCanvas({ officeState, onHover, onClick, isEditMode, editor
       const pos = screenToWorld(e.clientX, e.clientY)
       if (!pos) return
       const hitId = officeState.getCharacterAt(pos.worldX, pos.worldY)
+      const tile = screenToTile(e.clientX, e.clientY)
+      officeState.hoveredTile = tile
       const canvas = canvasRef.current
       if (canvas) {
         let cursor = 'default'
         if (hitId !== null) {
           cursor = 'pointer'
-        } else if (officeState.selectedAgentId !== null) {
-          // Check if hovering over an available seat
-          const tile = screenToTile(e.clientX, e.clientY)
-          if (tile) {
-            const seatId = officeState.getSeatAtTile(tile.col, tile.row)
-            if (seatId) {
-              const seat = officeState.seats.get(seatId)
-              if (seat && !seat.assigned) {
-                cursor = 'pointer'
-              }
+        } else if (officeState.selectedAgentId !== null && tile) {
+          // Check if hovering over a clickable seat (available or own)
+          const seatId = officeState.getSeatAtTile(tile.col, tile.row)
+          if (seatId) {
+            const seat = officeState.seats.get(seatId)
+            if (seat && !seat.assigned) {
+              cursor = 'pointer'
             }
           }
         }
         canvas.style.cursor = cursor
       }
+      officeState.hoveredAgentId = hitId
       const containerRect = containerRef.current?.getBoundingClientRect()
       const relX = containerRect ? e.clientX - containerRect.left : pos.screenX
       const relY = containerRect ? e.clientY - containerRect.top : pos.screenY
@@ -242,6 +266,8 @@ export function OfficeCanvas({ officeState, onHover, onClick, isEditMode, editor
       // Middle mouse button (button 1) starts panning
       if (e.button === 1) {
         e.preventDefault()
+        // Break camera follow on manual pan
+        officeState.selectedAgentId = null
         isPanningRef.current = true
         panStartRef.current = {
           mouseX: e.clientX,
@@ -261,7 +287,7 @@ export function OfficeCanvas({ officeState, onHover, onClick, isEditMode, editor
         onEditorTileAction(tile.col, tile.row)
       }
     },
-    [isEditMode, editorState, screenToTile, onEditorTileAction, panRef],
+    [officeState, isEditMode, editorState, screenToTile, onEditorTileAction, panRef],
   )
 
   const handleMouseUp = useCallback(
@@ -321,10 +347,12 @@ export function OfficeCanvas({ officeState, onHover, onClick, isEditMode, editor
     editorState.isDragging = false
     editorState.ghostCol = -1
     editorState.ghostRow = -1
+    officeState.hoveredAgentId = null
+    officeState.hoveredTile = null
     if (!isEditMode) {
       onHover(null, 0, 0)
     }
-  }, [onHover, editorState, isEditMode])
+  }, [officeState, onHover, editorState, isEditMode])
 
   // Ctrl+wheel to zoom in/out by integer steps
   const handleWheel = useCallback(
