@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "timestamp": "2026-02-16T21:54:47.418Z",
+  "timestamp": "2026-02-16T22:28:09.674Z",
   "sourceFile": "assets/office_tileset_16x16.png",
   "tileset": {
     "width": 256,
@@ -822,7 +822,7 @@
       ],
       "name": "BIN",
       "label": "Trash Bin",
-      "category": "decor",
+      "category": "misc",
       "footprintW": 1,
       "footprintH": 1,
       "isDesk": false,
@@ -830,7 +830,9 @@
       "discard": false,
       "partOfGroup": false,
       "groupId": null,
-      "canPlaceOnSurfaces": false
+      "canPlaceOnSurfaces": false,
+      "backgroundTiles": 0,
+      "canPlaceOnWalls": false
     },
     {
       "id": "ASSET_46",
@@ -863,10 +865,12 @@
       "footprintH": 2,
       "isDesk": true,
       "colorEditable": false,
-      "discard": false,
+      "discard": true,
       "partOfGroup": false,
       "groupId": null,
-      "canPlaceOnSurfaces": false
+      "canPlaceOnSurfaces": false,
+      "backgroundTiles": 0,
+      "canPlaceOnWalls": false
     },
     {
       "id": "ASSET_49",
@@ -894,15 +898,17 @@
       "paddedHeight": 16,
       "name": "WOOD_COFEE_TABLE",
       "label": "Wooden Coffee Table",
-      "category": "decor",
+      "category": "desks",
       "footprintW": 2,
       "footprintH": 1,
-      "isDesk": false,
+      "isDesk": true,
       "colorEditable": true,
       "discard": false,
       "partOfGroup": false,
       "groupId": null,
-      "canPlaceOnSurfaces": false
+      "canPlaceOnSurfaces": false,
+      "backgroundTiles": 0,
+      "canPlaceOnWalls": false
     },
     {
       "id": "ASSET_50_0_1",
@@ -917,10 +923,12 @@
       "footprintH": 1,
       "isDesk": false,
       "colorEditable": false,
-      "discard": false,
+      "discard": true,
       "partOfGroup": false,
       "groupId": null,
-      "canPlaceOnSurfaces": false
+      "canPlaceOnSurfaces": false,
+      "backgroundTiles": 0,
+      "canPlaceOnWalls": false
     },
     {
       "id": "ASSET_51",
@@ -1133,6 +1141,26 @@
         },
         {
           "x": 15,
+          "y": 31
+        },
+        {
+          "x": 3,
+          "y": 31
+        },
+        {
+          "x": 6,
+          "y": 31
+        },
+        {
+          "x": 7,
+          "y": 31
+        },
+        {
+          "x": 8,
+          "y": 31
+        },
+        {
+          "x": 9,
           "y": 31
         }
       ],
@@ -1710,20 +1738,513 @@
     {
       "id": "ASSET_100",
       "paddedX": 240,
-      "paddedY": 384,
+      "paddedY": 392,
       "paddedWidth": 16,
-      "paddedHeight": 16,
+      "paddedHeight": 32,
       "name": "PAPER_SIDE",
       "label": "Paper - Side",
       "category": "decor",
       "footprintW": 1,
-      "footprintH": 1,
+      "footprintH": 2,
       "isDesk": false,
       "colorEditable": false,
       "discard": false,
       "partOfGroup": true,
       "groupId": "PAPER",
-      "canPlaceOnSurfaces": true
+      "canPlaceOnSurfaces": true,
+      "erasedPixels": [
+        {
+          "x": 4,
+          "y": 0
+        },
+        {
+          "x": 4,
+          "y": 1
+        },
+        {
+          "x": 4,
+          "y": 2
+        },
+        {
+          "x": 4,
+          "y": 3
+        },
+        {
+          "x": 4,
+          "y": 4
+        },
+        {
+          "x": 5,
+          "y": 4
+        },
+        {
+          "x": 6,
+          "y": 4
+        },
+        {
+          "x": 7,
+          "y": 4
+        },
+        {
+          "x": 7,
+          "y": 3
+        },
+        {
+          "x": 8,
+          "y": 3
+        },
+        {
+          "x": 9,
+          "y": 3
+        },
+        {
+          "x": 10,
+          "y": 3
+        },
+        {
+          "x": 11,
+          "y": 3
+        },
+        {
+          "x": 11,
+          "y": 2
+        },
+        {
+          "x": 10,
+          "y": 2
+        },
+        {
+          "x": 9,
+          "y": 2
+        },
+        {
+          "x": 8,
+          "y": 2
+        },
+        {
+          "x": 7,
+          "y": 2
+        },
+        {
+          "x": 6,
+          "y": 2
+        },
+        {
+          "x": 5,
+          "y": 2
+        },
+        {
+          "x": 5,
+          "y": 3
+        },
+        {
+          "x": 8,
+          "y": 4
+        },
+        {
+          "x": 9,
+          "y": 4
+        },
+        {
+          "x": 10,
+          "y": 4
+        },
+        {
+          "x": 6,
+          "y": 3
+        },
+        {
+          "x": 3,
+          "y": 3
+        },
+        {
+          "x": 3,
+          "y": 2
+        },
+        {
+          "x": 3,
+          "y": 1
+        },
+        {
+          "x": 3,
+          "y": 0
+        },
+        {
+          "x": 6,
+          "y": 1
+        },
+        {
+          "x": 7,
+          "y": 1
+        },
+        {
+          "x": 8,
+          "y": 1
+        },
+        {
+          "x": 9,
+          "y": 1
+        },
+        {
+          "x": 10,
+          "y": 1
+        },
+        {
+          "x": 11,
+          "y": 1
+        },
+        {
+          "x": 12,
+          "y": 1
+        },
+        {
+          "x": 12,
+          "y": 0
+        },
+        {
+          "x": 11,
+          "y": 0
+        },
+        {
+          "x": 5,
+          "y": 1
+        },
+        {
+          "x": 10,
+          "y": 0
+        },
+        {
+          "x": 9,
+          "y": 0
+        },
+        {
+          "x": 8,
+          "y": 0
+        },
+        {
+          "x": 7,
+          "y": 0
+        },
+        {
+          "x": 6,
+          "y": 0
+        },
+        {
+          "x": 5,
+          "y": 0
+        },
+        {
+          "x": 2,
+          "y": 26
+        },
+        {
+          "x": 3,
+          "y": 26
+        },
+        {
+          "x": 4,
+          "y": 27
+        },
+        {
+          "x": 5,
+          "y": 27
+        },
+        {
+          "x": 6,
+          "y": 27
+        },
+        {
+          "x": 7,
+          "y": 27
+        },
+        {
+          "x": 8,
+          "y": 27
+        },
+        {
+          "x": 9,
+          "y": 27
+        },
+        {
+          "x": 10,
+          "y": 27
+        },
+        {
+          "x": 11,
+          "y": 27
+        },
+        {
+          "x": 12,
+          "y": 27
+        },
+        {
+          "x": 13,
+          "y": 27
+        },
+        {
+          "x": 13,
+          "y": 26
+        },
+        {
+          "x": 12,
+          "y": 26
+        },
+        {
+          "x": 11,
+          "y": 26
+        },
+        {
+          "x": 10,
+          "y": 26
+        },
+        {
+          "x": 9,
+          "y": 26
+        },
+        {
+          "x": 8,
+          "y": 26
+        },
+        {
+          "x": 7,
+          "y": 26
+        },
+        {
+          "x": 6,
+          "y": 26
+        },
+        {
+          "x": 5,
+          "y": 26
+        },
+        {
+          "x": 4,
+          "y": 26
+        },
+        {
+          "x": 2,
+          "y": 27
+        },
+        {
+          "x": 2,
+          "y": 28
+        },
+        {
+          "x": 2,
+          "y": 29
+        },
+        {
+          "x": 2,
+          "y": 30
+        },
+        {
+          "x": 3,
+          "y": 29
+        },
+        {
+          "x": 3,
+          "y": 28
+        },
+        {
+          "x": 4,
+          "y": 28
+        },
+        {
+          "x": 3,
+          "y": 30
+        },
+        {
+          "x": 3,
+          "y": 31
+        },
+        {
+          "x": 2,
+          "y": 31
+        },
+        {
+          "x": 3,
+          "y": 27
+        },
+        {
+          "x": 4,
+          "y": 29
+        },
+        {
+          "x": 5,
+          "y": 28
+        },
+        {
+          "x": 6,
+          "y": 28
+        },
+        {
+          "x": 5,
+          "y": 29
+        },
+        {
+          "x": 4,
+          "y": 30
+        },
+        {
+          "x": 9,
+          "y": 28
+        },
+        {
+          "x": 8,
+          "y": 28
+        },
+        {
+          "x": 7,
+          "y": 28
+        },
+        {
+          "x": 6,
+          "y": 29
+        },
+        {
+          "x": 5,
+          "y": 30
+        },
+        {
+          "x": 6,
+          "y": 30
+        },
+        {
+          "x": 7,
+          "y": 30
+        },
+        {
+          "x": 8,
+          "y": 29
+        },
+        {
+          "x": 9,
+          "y": 29
+        },
+        {
+          "x": 10,
+          "y": 28
+        },
+        {
+          "x": 11,
+          "y": 28
+        },
+        {
+          "x": 7,
+          "y": 29
+        },
+        {
+          "x": 5,
+          "y": 31
+        },
+        {
+          "x": 6,
+          "y": 31
+        },
+        {
+          "x": 7,
+          "y": 31
+        },
+        {
+          "x": 8,
+          "y": 31
+        },
+        {
+          "x": 9,
+          "y": 30
+        },
+        {
+          "x": 10,
+          "y": 29
+        },
+        {
+          "x": 11,
+          "y": 29
+        },
+        {
+          "x": 12,
+          "y": 29
+        },
+        {
+          "x": 12,
+          "y": 28
+        },
+        {
+          "x": 10,
+          "y": 30
+        },
+        {
+          "x": 9,
+          "y": 31
+        },
+        {
+          "x": 11,
+          "y": 30
+        },
+        {
+          "x": 12,
+          "y": 30
+        },
+        {
+          "x": 8,
+          "y": 30
+        },
+        {
+          "x": 4,
+          "y": 31
+        },
+        {
+          "x": 10,
+          "y": 31
+        },
+        {
+          "x": 11,
+          "y": 31
+        },
+        {
+          "x": 12,
+          "y": 31
+        },
+        {
+          "x": 13,
+          "y": 31
+        },
+        {
+          "x": 13,
+          "y": 30
+        },
+        {
+          "x": 13,
+          "y": 29
+        },
+        {
+          "x": 13,
+          "y": 28
+        },
+        {
+          "x": 14,
+          "y": 27
+        },
+        {
+          "x": 14,
+          "y": 28
+        },
+        {
+          "x": 14,
+          "y": 29
+        },
+        {
+          "x": 14,
+          "y": 30
+        },
+        {
+          "x": 14,
+          "y": 31
+        }
+      ],
+      "backgroundTiles": 1,
+      "canPlaceOnWalls": false,
+      "orientation": "front"
     },
     {
       "id": "ASSET_107",
@@ -1884,20 +2405,23 @@
     {
       "id": "ASSET_110",
       "paddedX": 224,
-      "paddedY": 394,
+      "paddedY": 386,
       "paddedWidth": 16,
-      "paddedHeight": 16,
+      "paddedHeight": 32,
       "name": "PAPER_FRONT",
       "label": "Paper - Front",
       "category": "decor",
       "footprintW": 1,
-      "footprintH": 1,
+      "footprintH": 2,
       "isDesk": false,
       "colorEditable": false,
       "discard": false,
       "partOfGroup": true,
       "groupId": "PAPER",
-      "canPlaceOnSurfaces": true
+      "canPlaceOnSurfaces": true,
+      "backgroundTiles": 1,
+      "canPlaceOnWalls": false,
+      "orientation": "front"
     },
     {
       "id": "ASSET_109",
@@ -2923,7 +3447,7 @@
       ],
       "name": "CHART_2",
       "label": "Chart",
-      "category": "decor",
+      "category": "wall",
       "footprintW": 2,
       "footprintH": 2,
       "isDesk": false,

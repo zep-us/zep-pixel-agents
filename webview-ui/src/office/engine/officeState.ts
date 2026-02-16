@@ -1,6 +1,7 @@
-import { TILE_SIZE, CharacterState, Direction } from '../types.js'
+import { TILE_SIZE, MATRIX_EFFECT_DURATION, CharacterState, Direction } from '../types.js'
 import type { Character, Seat, FurnitureInstance, TileType as TileTypeVal, OfficeLayout, PlacedFurniture } from '../types.js'
 import { createCharacter, updateCharacter } from './characters.js'
+import { matrixEffectSeeds } from './matrixEffect.js'
 import { getWalkableTiles, findPath } from '../layout/tileMap.js'
 import {
   createDefaultLayout,
@@ -178,7 +179,7 @@ export class OfficeState {
     return { palette, hueShift }
   }
 
-  addAgent(id: number, preferredPalette?: number, preferredHueShift?: number, preferredSeatId?: string): void {
+  addAgent(id: number, preferredPalette?: number, preferredHueShift?: number, preferredSeatId?: string, skipSpawnEffect?: boolean): void {
     if (this.characters.has(id)) return
 
     let palette: number
@@ -204,35 +205,47 @@ export class OfficeState {
       seatId = this.findFreeSeat()
     }
 
+    let ch: Character
     if (seatId) {
       const seat = this.seats.get(seatId)!
       seat.assigned = true
-      const ch = createCharacter(id, palette, seatId, seat, hueShift)
-      this.characters.set(id, ch)
+      ch = createCharacter(id, palette, seatId, seat, hueShift)
     } else {
       // No seats — spawn at random walkable tile
       const spawn = this.walkableTiles.length > 0
         ? this.walkableTiles[Math.floor(Math.random() * this.walkableTiles.length)]
         : { col: 1, row: 1 }
-      const ch = createCharacter(id, palette, null, null, hueShift)
+      ch = createCharacter(id, palette, null, null, hueShift)
       ch.x = spawn.col * TILE_SIZE + TILE_SIZE / 2
       ch.y = spawn.row * TILE_SIZE + TILE_SIZE / 2
       ch.tileCol = spawn.col
       ch.tileRow = spawn.row
-      this.characters.set(id, ch)
     }
+
+    if (!skipSpawnEffect) {
+      ch.matrixEffect = 'spawn'
+      ch.matrixEffectTimer = 0
+      ch.matrixEffectSeeds = matrixEffectSeeds()
+    }
+    this.characters.set(id, ch)
   }
 
   removeAgent(id: number): void {
     const ch = this.characters.get(id)
     if (!ch) return
+    if (ch.matrixEffect === 'despawn') return // already despawning
+    // Free seat and clear selection immediately
     if (ch.seatId) {
       const seat = this.seats.get(ch.seatId)
       if (seat) seat.assigned = false
     }
-    this.characters.delete(id)
     if (this.selectedAgentId === id) this.selectedAgentId = null
     if (this.cameraFollowId === id) this.cameraFollowId = null
+    // Start despawn animation instead of immediate delete
+    ch.matrixEffect = 'despawn'
+    ch.matrixEffectTimer = 0
+    ch.matrixEffectSeeds = matrixEffectSeeds()
+    ch.bubbleType = null
   }
 
   /** Find seat uid at a given tile position, or null */
@@ -334,13 +347,11 @@ export class OfficeState {
       }
     }
 
+    let ch: Character
     if (bestSeatId) {
       const seat = this.seats.get(bestSeatId)!
       seat.assigned = true
-      const ch = createCharacter(id, palette, bestSeatId, seat, hueShift)
-      ch.isSubagent = true
-      ch.parentAgentId = parentAgentId
-      this.characters.set(id, ch)
+      ch = createCharacter(id, palette, bestSeatId, seat, hueShift)
     } else {
       // No seats — spawn at closest walkable tile to parent
       let spawn = { col: 1, row: 1 }
@@ -356,15 +367,18 @@ export class OfficeState {
         }
         spawn = closest
       }
-      const ch = createCharacter(id, palette, null, null, hueShift)
-      ch.isSubagent = true
-      ch.parentAgentId = parentAgentId
+      ch = createCharacter(id, palette, null, null, hueShift)
       ch.x = spawn.col * TILE_SIZE + TILE_SIZE / 2
       ch.y = spawn.row * TILE_SIZE + TILE_SIZE / 2
       ch.tileCol = spawn.col
       ch.tileRow = spawn.row
-      this.characters.set(id, ch)
     }
+    ch.isSubagent = true
+    ch.parentAgentId = parentAgentId
+    ch.matrixEffect = 'spawn'
+    ch.matrixEffectTimer = 0
+    ch.matrixEffectSeeds = matrixEffectSeeds()
+    this.characters.set(id, ch)
 
     this.subagentIdMap.set(key, id)
     this.subagentMeta.set(id, { parentAgentId, parentToolId })
@@ -378,11 +392,24 @@ export class OfficeState {
     if (id === undefined) return
 
     const ch = this.characters.get(id)
-    if (ch && ch.seatId) {
-      const seat = this.seats.get(ch.seatId)
-      if (seat) seat.assigned = false
+    if (ch) {
+      if (ch.matrixEffect === 'despawn') {
+        // Already despawning — just clean up maps
+        this.subagentIdMap.delete(key)
+        this.subagentMeta.delete(id)
+        return
+      }
+      if (ch.seatId) {
+        const seat = this.seats.get(ch.seatId)
+        if (seat) seat.assigned = false
+      }
+      // Start despawn animation — keep character in map for rendering
+      ch.matrixEffect = 'despawn'
+      ch.matrixEffectTimer = 0
+      ch.matrixEffectSeeds = matrixEffectSeeds()
+      ch.bubbleType = null
     }
-    this.characters.delete(id)
+    // Clean up tracking maps immediately so keys don't collide
     this.subagentIdMap.delete(key)
     this.subagentMeta.delete(id)
     if (this.selectedAgentId === id) this.selectedAgentId = null
@@ -396,11 +423,23 @@ export class OfficeState {
       const meta = this.subagentMeta.get(id)
       if (meta && meta.parentAgentId === parentAgentId) {
         const ch = this.characters.get(id)
-        if (ch && ch.seatId) {
-          const seat = this.seats.get(ch.seatId)
-          if (seat) seat.assigned = false
+        if (ch) {
+          if (ch.matrixEffect === 'despawn') {
+            // Already despawning — just clean up maps
+            this.subagentMeta.delete(id)
+            toRemove.push(key)
+            continue
+          }
+          if (ch.seatId) {
+            const seat = this.seats.get(ch.seatId)
+            if (seat) seat.assigned = false
+          }
+          // Start despawn animation
+          ch.matrixEffect = 'despawn'
+          ch.matrixEffectTimer = 0
+          ch.matrixEffectSeeds = matrixEffectSeeds()
+          ch.bubbleType = null
         }
-        this.characters.delete(id)
         this.subagentMeta.delete(id)
         if (this.selectedAgentId === id) this.selectedAgentId = null
         if (this.cameraFollowId === id) this.cameraFollowId = null
@@ -530,7 +569,25 @@ export class OfficeState {
   }
 
   update(dt: number): void {
+    const toDelete: number[] = []
     for (const ch of this.characters.values()) {
+      // Handle matrix effect animation
+      if (ch.matrixEffect) {
+        ch.matrixEffectTimer += dt
+        if (ch.matrixEffectTimer >= MATRIX_EFFECT_DURATION) {
+          if (ch.matrixEffect === 'spawn') {
+            // Spawn complete — clear effect, resume normal FSM
+            ch.matrixEffect = null
+            ch.matrixEffectTimer = 0
+            ch.matrixEffectSeeds = []
+          } else {
+            // Despawn complete — mark for deletion
+            toDelete.push(ch.id)
+          }
+        }
+        continue // skip normal FSM while effect is active
+      }
+
       // Temporarily unblock own seat so character can pathfind to it
       this.withOwnSeatUnblocked(ch, () =>
         updateCharacter(ch, dt, this.walkableTiles, this.seats, this.tileMap, this.blockedTiles)
@@ -545,6 +602,10 @@ export class OfficeState {
         }
       }
     }
+    // Remove characters that finished despawn
+    for (const id of toDelete) {
+      this.characters.delete(id)
+    }
   }
 
   getCharacters(): Character[] {
@@ -555,6 +616,8 @@ export class OfficeState {
   getCharacterAt(worldX: number, worldY: number): number | null {
     const chars = this.getCharacters().sort((a, b) => b.y - a.y)
     for (const ch of chars) {
+      // Skip characters that are despawning
+      if (ch.matrixEffect === 'despawn') continue
       // Character sprite is 16x24, anchored bottom-center
       // Apply sitting offset to match visual position
       const sittingOffset = ch.state === CharacterState.TYPE ? 6 : 0

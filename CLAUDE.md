@@ -22,12 +22,12 @@ webview-ui/src/               — React + TypeScript (Vite)
     useEditorActions.ts       — Editor state + callbacks
     useEditorKeyboard.ts      — Keyboard shortcut effect
   components/
-    BottomToolbar.tsx          — + Agent, Layout toggle, Settings gear
+    BottomToolbar.tsx          — + Agent, Layout toggle, Settings button
     ZoomControls.tsx           — +/- zoom (top-right)
     SettingsModal.tsx          — Debug toggle popup
     DebugView.tsx              — Debug overlay
   office/
-    types.ts                  — Constants (TILE_SIZE=16, DEFAULT 20×11, MAX 64×64), interfaces, OfficeLayout, FloorColor
+    types.ts                  — Constants (TILE_SIZE=16, MATRIX_EFFECT_DURATION=0.3, DEFAULT 20×11, MAX 64×64), interfaces, OfficeLayout, FloorColor
     toolUtils.ts              — STATUS_TO_TOOL mapping, extractToolName(), defaultZoom()
     colorize.ts               — Dual-mode color module: Colorize (grayscale→HSL) + Adjust (HSL shift)
     floorTiles.ts             — Floor sprite storage + colorized cache
@@ -48,6 +48,7 @@ webview-ui/src/               — React + TypeScript (Vite)
       officeState.ts          — Game world: layout, characters, seats, selection, subagents
       gameLoop.ts             — rAF loop with delta time (capped 0.1s)
       renderer.ts             — Canvas: tiles, z-sorted entities, overlays, edit UI
+      matrixEffect.ts         — Matrix-style spawn/despawn digital rain effect
     components/
       OfficeCanvas.tsx        — Canvas, resize, DPR, mouse hit-testing, edit interactions, drag-to-move
       ToolOverlay.tsx          — Activity status label above hovered/selected character + close button
@@ -93,6 +94,8 @@ JSONL transcripts at `~/.claude/projects/<project-hash>/<session-id>.jsonl`. Pro
 **UI styling**: Pixel art aesthetic — all overlays use sharp corners (`borderRadius: 0`), solid backgrounds (`#1e1e2e`), `2px solid` borders, hard offset shadows (`2px 2px 0px #0a0a14`, no blur). CSS variables defined in `index.css` `:root` (`--pixel-bg`, `--pixel-border`, `--pixel-accent`, etc.). Pixel font: FS Pixel Sans (`webview-ui/src/fonts/`), loaded via `@font-face` in `index.css`, applied globally.
 
 **Characters**: FSM states — active (pathfind to seat, typing/reading animation by tool type), idle (static standing pose, wander randomly with BFS). 4-directional sprites, left = flipped right. Tool animations: typing (Write/Edit/Bash/Task) vs reading (Read/Grep/Glob/WebFetch). Sitting offset: characters shift down 6px when in TYPE state so they visually sit in their chair. Z-sort uses `ch.y + TILE_SIZE/2 + 0.5` so characters render in front of same-row furniture (chairs) but behind furniture at lower rows (desks, bookshelves). Chair z-sorting: non-back chairs use `zY = (row+1)*TILE_SIZE` (capped to first row) so characters at any seat tile render in front; back-facing chairs use `zY = (row+1)*TILE_SIZE + 1` so the chair back renders in front of the character. Chair tiles are blocked for all characters except their own assigned seat (per-character pathfinding via `withOwnSeatUnblocked`). **Diverse palette assignment**: `pickDiversePalette()` counts palettes of current non-sub-agent characters; picks randomly from least-used palette(s). First 6 agents each get a unique skin; beyond 6, skins repeat with a random hue shift (45–315°) via `adjustSprite()`. Character stores `palette` (0-5) + `hueShift` (degrees). Sprite cache keyed by `"palette:hueShift"`.
+
+**Spawn/despawn effect**: Matrix-style digital rain animation (0.3s). 16 vertical columns sweep top-to-bottom with staggered timing (per-column random seeds). Spawn: green rain reveals character pixels behind the sweep. Despawn: character pixels consumed by green rain trails. `matrixEffect` field on Character (`'spawn'`/`'despawn'`/`null`). Normal FSM is paused during effect. Despawning characters skip hit-testing. Restored agents (`existingAgents`) use `skipSpawnEffect: true` to appear instantly. `matrixEffect.ts` contains `renderMatrixEffect()` (per-pixel rendering) called from renderer instead of cached sprite draw.
 
 **Sub-agents**: Negative IDs (from -1 down). Created on `agentToolStart` with "Subtask:" prefix. Same palette + hueShift as parent. Click focuses parent terminal. Not persisted. Spawn at closest free seat to parent (Manhattan distance); fallback: closest walkable tile. **Sub-agent permission detection**: when a sub-agent runs a non-exempt tool, `startPermissionTimer` fires on the parent agent; if 5s elapse with no data, permission bubbles appear on both parent and sub-agent characters. `activeSubagentToolNames` (parentToolId → subToolId → toolName) tracks which sub-tools are active for the exempt check. Cleared when data resumes or Task completes.
 

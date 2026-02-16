@@ -1,4 +1,5 @@
 export const TILE_SIZE = 16
+export const MATRIX_EFFECT_DURATION = 0.3
 export const DEFAULT_COLS = 20
 export const DEFAULT_ROWS = 11
 export const MAX_COLS = 64
@@ -198,4 +199,10 @@ export interface Character {
   isSubagent: boolean
   /** Parent agent ID if this is a sub-agent, null otherwise */
   parentAgentId: number | null
+  /** Active matrix spawn/despawn effect, or null */
+  matrixEffect: 'spawn' | 'despawn' | null
+  /** Timer counting up from 0 to MATRIX_EFFECT_DURATION */
+  matrixEffectTimer: number
+  /** Per-column random seeds (16 values) for staggered rain timing */
+  matrixEffectSeeds: number[]
 }

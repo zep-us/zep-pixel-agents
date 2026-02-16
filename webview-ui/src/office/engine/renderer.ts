@@ -3,6 +3,7 @@ import type { TileType as TileTypeVal, FurnitureInstance, Character, SpriteData,
 import { getCachedSprite, getOutlineSprite } from '../sprites/spriteCache.js'
 import { getCharacterSprites, BUBBLE_PERMISSION_SPRITE, BUBBLE_WAITING_SPRITE } from '../sprites/spriteData.js'
 import { getCharacterSprite } from './characters.js'
+import { renderMatrixEffect } from './matrixEffect.js'
 import { getColorizedFloorSprite, hasFloorSprites, WALL_COLOR } from '../floorTiles.js'
 import { hasWallSprites, getWallInstances, wallColorToHex } from '../wallTiles.js'
 
@@ -100,6 +101,21 @@ export function renderScene(
     // in front of same-row furniture (e.g. chairs) but behind furniture
     // at lower rows (e.g. desks, bookshelves that occlude from below).
     const charZY = ch.y + TILE_SIZE / 2 + 0.5
+
+    // Matrix spawn/despawn effect — skip outline, use per-pixel rendering
+    if (ch.matrixEffect) {
+      const mDrawX = drawX
+      const mDrawY = drawY
+      const mSpriteData = spriteData
+      const mCh = ch
+      drawables.push({
+        zY: charZY,
+        draw: (c) => {
+          renderMatrixEffect(c, mCh, mSpriteData, mDrawX, mDrawY, zoom)
+        },
+      })
+      continue
+    }
 
     // White outline: full opacity for selected, 50% for hover
     const isSelected = selectedAgentId !== null && ch.id === selectedAgentId

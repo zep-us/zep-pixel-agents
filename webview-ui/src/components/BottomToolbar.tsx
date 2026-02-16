@@ -40,12 +40,6 @@ const btnActive: React.CSSProperties = {
   border: '2px solid #5a8cff',
 }
 
-const gearBase: React.CSSProperties = {
-  ...btnBase,
-  padding: '5px 8px',
-  fontSize: '28px',
-  lineHeight: '28px',
-}
 
 export function BottomToolbar({
   isEditMode,
@@ -95,21 +89,19 @@ export function BottomToolbar({
       <div style={{ position: 'relative' }}>
         <button
           onClick={() => setIsSettingsOpen((v) => !v)}
-          onMouseEnter={() => setHovered('gear')}
+          onMouseEnter={() => setHovered('settings')}
           onMouseLeave={() => setHovered(null)}
-          style={{
-            ...gearBase,
-            background:
-              isSettingsOpen
-                ? 'rgba(90, 140, 255, 0.25)'
-                : hovered === 'gear'
-                  ? 'rgba(255, 255, 255, 0.15)'
-                  : gearBase.background,
-            border: isSettingsOpen ? '2px solid #5a8cff' : '2px solid transparent',
-          }}
+          style={
+            isSettingsOpen
+              ? { ...btnActive }
+              : {
+                  ...btnBase,
+                  background: hovered === 'settings' ? 'rgba(255, 255, 255, 0.15)' : btnBase.background,
+                }
+          }
           title="Settings"
         >
-          {'\u2699'}
+          Settings
         </button>
         <SettingsModal
           isOpen={isSettingsOpen}
