@@ -3,12 +3,11 @@ import type * as vscode from 'vscode';
 import type { AgentState } from './types.js';
 import {
 	cancelWaitingTimer,
-	startWaitingTimer,
 	clearAgentActivity,
 	startPermissionTimer,
+	cancelPermissionTimer,
 } from './timerManager.js';
 import {
-	WAITING_TIMER_DELAY_MS,
 	TOOL_DONE_DELAY_MS,
 	BASH_COMMAND_DISPLAY_MAX_LENGTH,
 	TASK_DESCRIPTION_DISPLAY_MAX_LENGTH,
@@ -87,12 +86,9 @@ export function processTranscriptLine(
 				if (hasNonExemptTool) {
 					startPermissionTimer(agentId, agents, permissionTimers, PERMISSION_EXEMPT_TOOLS, webview);
 				}
-			} else {
-				const hasText = blocks.some(b => b.type === 'text');
-				if (hasText) {
-					startWaitingTimer(agentId, WAITING_TIMER_DELAY_MS, agents, waitingTimers, webview);
-				}
 			}
+			// Text-only assistant records (thinking, planning, intermediate text) are ignored
+			// for idle detection. Only turn_duration reliably signals turn end.
 		} else if (record.type === 'progress') {
 			processProgressRecord(agentId, record, agents, waitingTimers, permissionTimers, webview);
 		} else if (record.type === 'user') {
@@ -138,7 +134,20 @@ export function processTranscriptLine(
 			}
 		} else if (record.type === 'system' && record.subtype === 'turn_duration') {
 			cancelWaitingTimer(agentId, waitingTimers);
+			cancelPermissionTimer(agentId, permissionTimers);
+
+			// Definitive turn-end: clean up any stale tool state
+			if (agent.activeToolIds.size > 0) {
+				agent.activeToolIds.clear();
+				agent.activeToolStatuses.clear();
+				agent.activeToolNames.clear();
+				agent.activeSubagentToolIds.clear();
+				agent.activeSubagentToolNames.clear();
+				webview?.postMessage({ type: 'agentToolsClear', id: agentId });
+			}
+
 			agent.isWaiting = true;
+			agent.permissionSent = false;
 			webview?.postMessage({
 				type: 'agentStatus',
 				id: agentId,
@@ -164,11 +173,23 @@ function processProgressRecord(
 	const parentToolId = record.parentToolUseID as string | undefined;
 	if (!parentToolId) return;
 
-	// Verify parent is an active Task tool
+	const data = record.data as Record<string, unknown> | undefined;
+	if (!data) return;
+
+	// bash_progress / mcp_progress: tool is actively executing, not stuck on permission.
+	// Restart the permission timer to give the running tool another window.
+	const dataType = data.type as string | undefined;
+	if (dataType === 'bash_progress' || dataType === 'mcp_progress') {
+		if (agent.activeToolIds.has(parentToolId)) {
+			startPermissionTimer(agentId, agents, permissionTimers, PERMISSION_EXEMPT_TOOLS, webview);
+		}
+		return;
+	}
+
+	// Verify parent is an active Task tool (agent_progress handling)
 	if (agent.activeToolNames.get(parentToolId) !== 'Task') return;
 
-	const data = record.data as Record<string, unknown> | undefined;
-	const msg = data?.message as Record<string, unknown> | undefined;
+	const msg = data.message as Record<string, unknown> | undefined;
 	if (!msg) return;
 
 	const msgType = msg.type as string;

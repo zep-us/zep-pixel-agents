@@ -2,9 +2,8 @@
 export const JSONL_POLL_INTERVAL_MS = 1000;
 export const FILE_WATCHER_POLL_INTERVAL_MS = 2000;
 export const PROJECT_SCAN_INTERVAL_MS = 1000;
-export const WAITING_TIMER_DELAY_MS = 2000;
 export const TOOL_DONE_DELAY_MS = 300;
-export const PERMISSION_TIMER_DELAY_MS = 5000;
+export const PERMISSION_TIMER_DELAY_MS = 7000;
 
 // ── Display Truncation ──────────────────────────────────────
 export const BASH_COMMAND_DISPLAY_MAX_LENGTH = 30;

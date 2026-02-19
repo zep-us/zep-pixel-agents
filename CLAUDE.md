@@ -82,7 +82,7 @@ scripts/                      — 7-stage asset extraction pipeline
 
 JSONL transcripts at `~/.claude/projects/<project-hash>/<session-id>.jsonl`. Project hash = workspace path with `:`/`\`/`/` → `-`.
 
-**JSONL record types**: `assistant` (tool_use blocks or thinking), `user` (tool_result or text prompt), `system` with `subtype: "turn_duration"` (reliable turn-end signal), `progress` (sub-agent activity — tool_use/tool_result forwarded to webview, non-exempt tools trigger permission timers).
+**JSONL record types**: `assistant` (tool_use blocks or thinking), `user` (tool_result or text prompt), `system` with `subtype: "turn_duration"` (reliable turn-end signal), `progress` with `data.type`: `agent_progress` (sub-agent tool_use/tool_result forwarded to webview, non-exempt tools trigger permission timers), `bash_progress` (long-running Bash output — restarts permission timer to confirm tool is executing), `mcp_progress` (MCP tool status — same timer restart logic). Also observed but not tracked: `file-history-snapshot`, `queue-operation`.
 
 **File watching**: Hybrid `fs.watch` + 2s polling backup. Partial line buffering for mid-write reads. Tool done messages delayed 300ms to prevent flicker.
 
@@ -159,7 +159,7 @@ Toggle via "Layout" button. Tools: SELECT (default), Floor paint, Wall paint, Er
 - `fs.watch` unreliable on Windows — always pair with polling backup
 - Partial line buffering essential for append-only file reads (carry unterminated lines)
 - Delay `agentToolDone` 300ms to prevent React batching from hiding brief active states
-- JSONL text-only assistant records are often intermediate (followed by tool_use). Reliable turn-end = `system` + `subtype: "turn_duration"`. Fallback: 2s debounce
+- JSONL text-only assistant records are ~89% intermediate (followed by tool_use) — NEVER use them for idle detection. Idle detection relies solely on `system` + `subtype: "turn_duration"` which appears exactly once per completed turn, immediately after the final assistant message. `turn_duration` handler clears all tool state as safety measure. No fallback timer — terminal close handles agent crashes
 - User prompt `content` can be string (text) or array (tool_results) — handle both
 - `/clear` creates NEW JSONL file (old file just stops)
 - `--output-format stream-json` needs non-TTY stdin — can't use with VS Code terminals
