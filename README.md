@@ -1,13 +1,13 @@
-# Pixel Agents
+# ZEP Agents
 
-A VS Code extension that turns your AI coding agents into animated pixel art characters in a virtual office.
+A VS Code extension that turns your AI coding agents into animated pixel art characters in a ZEP-style virtual office.
 
 Each Claude Code terminal you open spawns a character that walks around, sits at desks, and visually reflects what the agent is doing — typing when writing code, reading when searching files, waiting when it needs your attention.
 
-This is the source code for the free [Pixel Agents extension for VS Code](https://marketplace.visualstudio.com/items?itemName=pablodelucca.pixel-agents) — you can install it directly from the marketplace with the full furniture catalog included.
+This is the source code for the free [ZEP Agents extension for VS Code](https://marketplace.visualstudio.com/items?itemName=pablodelucca.zep-agents) — you can install it directly from the marketplace with the full furniture catalog included.
 
 
-![Pixel Agents screenshot](webview-ui/public/Screenshot.jpg)
+![ZEP Agents screenshot](webview-ui/public/Screenshot.jpg)
 
 ## Features
 
@@ -21,7 +21,7 @@ This is the source code for the free [Pixel Agents extension for VS Code](https:
 - **Diverse characters** — 6 diverse characters.
 
 <p align="center">
-  <img src="webview-ui/public/characters.png" alt="Pixel Agents characters" width="320" height="72" style="image-rendering: pixelated;">
+  <img src="webview-ui/public/characters.png" alt="ZEP Agents characters" width="320" height="72" style="image-rendering: pixelated;">
 </p>
 
 ## Requirements
@@ -31,13 +31,13 @@ This is the source code for the free [Pixel Agents extension for VS Code](https:
 
 ## Getting Started
 
-If you just want to use Pixel Agents, the easiest way is to download the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=pablodelucca.pixel-agents). If you want to play with the code, develop, or contribute, then:
+If you just want to use ZEP Agents, the easiest way is to download the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=pablodelucca.zep-agents). If you want to play with the code, develop, or contribute, then:
 
 ### Install from source
 
 ```bash
-git clone https://github.com/pablodelucca/pixel-agents.git
-cd pixel-agents
+git clone https://github.com/pablodelucca/zep-agents.git
+cd zep-agents
 npm install
 cd webview-ui && npm install && cd ..
 npm run build
@@ -47,7 +47,7 @@ Then press **F5** in VS Code to launch the Extension Development Host.
 
 ### Usage
 
-1. Open the **Pixel Agents** panel (it appears in the bottom panel area alongside your terminal)
+1. Open the **ZEP Agents** panel (it appears in the bottom panel area alongside your terminal)
 2. Click **+ Agent** to spawn a new Claude Code terminal and its character
 3. Start coding with Claude — watch the character react in real time
 4. Click a character to select it, then click a seat to reassign it
@@ -69,7 +69,7 @@ The grid is expandable up to 64×64 tiles. Click the ghost border outside the cu
 
 The office tileset used in this project and available via the extension is **[Office Interior Tileset (16x16)](https://donarg.itch.io/officetileset)** by **Donarg**, available on itch.io for **$2 USD**.
 
-This is the only part of the project that is not freely available. The tileset is not included in this repository due to its license. To use Pixel Agents locally with the full set of office furniture and decorations, purchase the tileset and run the asset import pipeline:
+This is the only part of the project that is not freely available. The tileset is not included in this repository due to its license. To use ZEP Agents locally with the full set of office furniture and decorations, purchase the tileset and run the asset import pipeline:
 
 ```bash
 npm run import-tileset
@@ -81,7 +81,7 @@ The extension will still work without the tileset — you'll get the default cha
 
 ## How It Works
 
-Pixel Agents watches Claude Code's JSONL transcript files to track what each agent is doing. When an agent uses a tool (like writing a file or running a command), the extension detects it and updates the character's animation accordingly. No modifications to Claude Code are needed — it's purely observational.
+ZEP Agents watches Claude Code's JSONL transcript files to track what each agent is doing. When an agent uses a tool (like writing a file or running a command), the extension detects it and updates the character's animation accordingly. No modifications to Claude Code are needed — it's purely observational.
 
 The webview runs a lightweight game loop with canvas rendering, BFS pathfinding, and a character state machine (idle → walk → type/read). Everything is pixel-perfect at integer zoom levels.
 
@@ -119,7 +119,7 @@ Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
 ## Supporting the Project
 
-If you find Pixel Agents useful, consider supporting its development:
+If you find ZEP Agents useful, consider supporting its development:
 
 <a href="https://github.com/sponsors/pablodelucca">
   <img src="https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?logo=github" alt="GitHub Sponsors">
