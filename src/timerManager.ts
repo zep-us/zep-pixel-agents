@@ -103,7 +103,7 @@ export function startPermissionTimer(
 
 		if (hasNonExempt) {
 			agent.permissionSent = true;
-			console.log(`[Pixel Agents] Agent ${agentId}: possible permission wait detected`);
+			console.log(`[ZEP Agents] Agent ${agentId}: possible permission wait detected`);
 			webview?.postMessage({
 				type: 'agentToolPermission',
 				id: agentId,
