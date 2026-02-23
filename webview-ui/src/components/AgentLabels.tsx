@@ -97,7 +97,7 @@ export function AgentLabels({
           >
             {dotColor !== 'transparent' && (
               <span
-                className={isActive && !isWaiting ? 'pixel-agents-pulse' : undefined}
+                className={isActive && !isWaiting ? 'zep-agents-pulse' : undefined}
                 style={{
                   width: 6,
                   height: 6,
