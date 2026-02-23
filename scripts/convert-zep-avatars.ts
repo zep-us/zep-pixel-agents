@@ -19,9 +19,9 @@
  *      Verified mapping: sit frames are at 9-col flat index:
  *        32 → col 5 row 3, 33 → col 6 row 3, 34 → col 7 row 3, 35 → col 8 row 3)
  *
- * pixel-agents output: 7 cols × 3 rows of 48×64 frames (336×192 total)
+ * pixel-agents output: 8 cols × 3 rows of 48×64 frames (384×192 total)
  *   Row 0 = down, Row 1 = up, Row 2 = right (left flipped at runtime)
- *   Col order: walk1, walk2(=idle), walk3, type1, type2, read1, read2
+ *   Col order: walk1, walk2, walk3, walk4, type1, type2, read1, read2
  *
  * Frame mapping (per direction):
  *   ZEP walk1  → pa col 0 (walk1)
@@ -69,7 +69,7 @@ const ZEP_SIT: Record<number, { flatIndex: number }> = {
 // ---------------------------------------------------------------------------
 const PA_FRAME_W = 48
 const PA_FRAME_H = 64
-const PA_COLS = 7
+const PA_COLS = 8
 // pa row → zep row
 // pa row 0 (down)  → zep row 0
 // pa row 1 (up)    → zep row 3
@@ -213,7 +213,7 @@ for (let i = 0; i < 6; i++) {
 
   const composited = compositeLayers(layers)
 
-  // 2. Build the pixel-agents output (112×96)
+  // 2. Build the pixel-agents output (384×192)
   const out = new PNG({ width: PA_FRAME_W * PA_COLS, height: PA_FRAME_H * PA_DIR_TO_ZEP_ROW.length })
   // Zero-fill (transparent)
   out.data.fill(0)
@@ -222,21 +222,23 @@ for (let i = 0; i < 6; i++) {
     const zepRow = PA_DIR_TO_ZEP_ROW[paRow]
     const sitFlatIndex = ZEP_SIT[zepRow].flatIndex
 
-    // ZEP col offsets within a direction row: 0=idle, 1=walk1, 2=walk2, 3=walk3
+    // ZEP col offsets within a direction row: 0=idle, 1=walk1, 2=walk2, 3=walk3, 4=walk4
     // pa col 0: walk1 → zep col 1
     copyFrame(composited, out, zepRow, 1, paRow, 0)
-    // pa col 1: walk2 (idle stand) → zep col 2
+    // pa col 1: walk2 → zep col 2
     copyFrame(composited, out, zepRow, 2, paRow, 1)
     // pa col 2: walk3 → zep col 3
     copyFrame(composited, out, zepRow, 3, paRow, 2)
-    // pa col 3: type1 → sit frame
-    copySitFrame(composited, out, sitFlatIndex, paRow, 3)
-    // pa col 4: type2 → sit frame (duplicate)
+    // pa col 3: walk4 → zep col 4
+    copyFrame(composited, out, zepRow, 4, paRow, 3)
+    // pa col 4: type1 → sit frame
     copySitFrame(composited, out, sitFlatIndex, paRow, 4)
-    // pa col 5: read1 → zep idle (col 0)
-    copyFrame(composited, out, zepRow, 0, paRow, 5)
-    // pa col 6: read2 → zep idle (duplicate)
+    // pa col 5: type2 → sit frame (duplicate)
+    copySitFrame(composited, out, sitFlatIndex, paRow, 5)
+    // pa col 6: read1 → zep idle (col 0) = standing pose
     copyFrame(composited, out, zepRow, 0, paRow, 6)
+    // pa col 7: read2 → zep idle (duplicate)
+    copyFrame(composited, out, zepRow, 0, paRow, 7)
   }
 
   // 3. Write output

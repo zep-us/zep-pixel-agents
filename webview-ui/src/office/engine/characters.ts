@@ -288,9 +288,9 @@ export function getCharacterSprite(ch: Character, sprites: CharacterSprites): Sp
     case CharacterState.WALK:
       return sprites.walk[ch.dir][ch.frame % 4]
     case CharacterState.IDLE:
-      return sprites.walk[ch.dir][1]
+      return sprites.reading[ch.dir][0]
     default:
-      return sprites.walk[ch.dir][1]
+      return sprites.reading[ch.dir][0]
   }
 }
 

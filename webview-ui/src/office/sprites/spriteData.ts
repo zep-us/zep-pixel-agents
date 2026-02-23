@@ -1066,22 +1066,22 @@ export function getCharacterSprites(paletteIndex: number, hueShift = 0): Charact
 
     sprites = {
       walk: {
-        [Dir.DOWN]: [d[0], d[1], d[2], d[1]],
-        [Dir.UP]: [u[0], u[1], u[2], u[1]],
-        [Dir.RIGHT]: [rt[0], rt[1], rt[2], rt[1]],
-        [Dir.LEFT]: [flip(rt[0]), flip(rt[1]), flip(rt[2]), flip(rt[1])],
+        [Dir.DOWN]: [d[0], d[1], d[2], d[3]],
+        [Dir.UP]: [u[0], u[1], u[2], u[3]],
+        [Dir.RIGHT]: [rt[0], rt[1], rt[2], rt[3]],
+        [Dir.LEFT]: [flip(rt[0]), flip(rt[1]), flip(rt[2]), flip(rt[3])],
       },
       typing: {
-        [Dir.DOWN]: [d[3], d[4]],
-        [Dir.UP]: [u[3], u[4]],
-        [Dir.RIGHT]: [rt[3], rt[4]],
-        [Dir.LEFT]: [flip(rt[3]), flip(rt[4])],
+        [Dir.DOWN]: [d[4], d[5]],
+        [Dir.UP]: [u[4], u[5]],
+        [Dir.RIGHT]: [rt[4], rt[5]],
+        [Dir.LEFT]: [flip(rt[4]), flip(rt[5])],
       },
       reading: {
-        [Dir.DOWN]: [d[5], d[6]],
-        [Dir.UP]: [u[5], u[6]],
-        [Dir.RIGHT]: [rt[5], rt[6]],
-        [Dir.LEFT]: [flip(rt[5]), flip(rt[6])],
+        [Dir.DOWN]: [d[6], d[7]],
+        [Dir.UP]: [u[6], u[7]],
+        [Dir.RIGHT]: [rt[6], rt[7]],
+        [Dir.LEFT]: [flip(rt[6]), flip(rt[7])],
       },
     }
   } else {
