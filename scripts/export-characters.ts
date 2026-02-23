@@ -2,9 +2,9 @@
  * Export pre-colored character sprites to PNG files.
  *
  * Generates 6 PNG files (one per palette) in
- * webview-ui/public/assets/characters/. Each PNG is 112×96:
- *   - 7 frames horizontally (16px each) = 112px wide
- *   - 3 direction rows vertically (32px each) = 96px tall
+ * webview-ui/public/assets/characters/. Each PNG is 336×192:
+ *   - 7 frames horizontally (48px each) = 336px wide
+ *   - 3 direction rows vertically (64px each) = 192px tall
  *     Row 0 = down, Row 1 = up, Row 2 = right
  *
  * Frame order per row: walk1, walk2, walk3, type1, type2, read1, read2
@@ -20,8 +20,8 @@ import * as path from 'path'
 import { PNG } from 'pngjs'
 import { CHARACTER_TEMPLATES, CHARACTER_PALETTES } from '../webview-ui/src/office/sprites/spriteData.js'
 
-const FRAME_W = 16
-const FRAME_H = 32
+const FRAME_W = 48
+const FRAME_H = 64
 const SPRITE_H = 24 // actual template height — bottom-aligned in frame
 const FRAMES_PER_ROW = 7
 const DIRECTIONS = ['down', 'up', 'right'] as const
@@ -113,8 +113,8 @@ for (let i = 0; i < CHARACTER_PALETTES.length; i++) {
 
 console.log(`\nGenerated ${CHARACTER_PALETTES.length} character PNGs`)
 console.log('\nPNG layout:')
-console.log('  112×96 (7 frames × 16px wide, 3 rows × 32px tall)')
+console.log('  336×192 (7 frames × 48px wide, 3 rows × 64px tall)')
 console.log('  Row 0: down, Row 1: up, Row 2: right')
-console.log('  Sprite data is 24px tall, bottom-aligned in 32px frame (8px padding at top)')
+console.log('  Sprite data is 24px tall, bottom-aligned in 64px frame (40px padding at top)')
 console.log('\nFrame order (per row):')
 console.log('  0: walk_1, 1: walk_2, 2: walk_3, 3: type_1, 4: type_2, 5: read_1, 6: read_2')

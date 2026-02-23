@@ -19,7 +19,7 @@
  *      Verified mapping: sit frames are at 9-col flat index:
  *        32 → col 5 row 3, 33 → col 6 row 3, 34 → col 7 row 3, 35 → col 8 row 3)
  *
- * pixel-agents output: 7 cols × 3 rows of 16×32 frames (112×96 total)
+ * pixel-agents output: 7 cols × 3 rows of 48×64 frames (336×192 total)
  *   Row 0 = down, Row 1 = up, Row 2 = right (left flipped at runtime)
  *   Col order: walk1, walk2(=idle), walk3, type1, type2, read1, read2
  *
@@ -67,8 +67,8 @@ const ZEP_SIT: Record<number, { flatIndex: number }> = {
 // ---------------------------------------------------------------------------
 // pixel-agents output constants
 // ---------------------------------------------------------------------------
-const PA_FRAME_W = 16
-const PA_FRAME_H = 32
+const PA_FRAME_W = 48
+const PA_FRAME_H = 64
 const PA_COLS = 7
 // pa row → zep row
 // pa row 0 (down)  → zep row 0
@@ -141,32 +141,12 @@ function compositeLayers(layers: PNG[]): PNG {
 }
 
 /**
- * Sample a single pixel from a ZEP frame using nearest-neighbor downscaling.
+ * Copy one ZEP frame (1:1, no scaling) into the output PNG.
+ * Since PA_FRAME_W === ZEP_FRAME_W and PA_FRAME_H === ZEP_FRAME_H,
+ * this is a direct pixel copy with no resampling.
  *
- * @param src      The composited ZEP spritesheet (432×256)
- * @param zepRow   Which ZEP direction row (0-3)
- * @param zepCol   Which column within that row (0 = idle, 1 = walk1, …)
- * @param dstX     X within the destination 16×32 frame (0-15)
- * @param dstY     Y within the destination 16×32 frame (0-31)
- */
-function sampleZepPixel(
-  src: PNG,
-  zepRow: number,
-  zepCol: number,
-  dstX: number,
-  dstY: number,
-): [number, number, number, number] {
-  // Map destination pixel to source pixel via nearest-neighbor
-  const srcX = zepCol * ZEP_FRAME_W + Math.floor(dstX * ZEP_FRAME_W / PA_FRAME_W)
-  const srcY = zepRow * ZEP_FRAME_H + Math.floor(dstY * ZEP_FRAME_H / PA_FRAME_H)
-  return getPixel(src, srcX, srcY)
-}
-
-/**
- * Copy one remapped+downscaled frame into the output PNG.
- *
- * @param src      Composited ZEP spritesheet
- * @param out      Output pixel-agents PNG (112×96)
+ * @param src      Composited ZEP spritesheet (432×256)
+ * @param out      Output pixel-agents PNG (336×192)
  * @param zepRow   ZEP direction row
  * @param zepCol   ZEP column within that row
  * @param paRow    pixel-agents output row
@@ -180,12 +160,14 @@ function copyFrame(
   paRow: number,
   paCol: number,
 ): void {
+  const srcBaseX = zepCol * ZEP_FRAME_W
+  const srcBaseY = zepRow * ZEP_FRAME_H
+  const outBaseX = paCol * PA_FRAME_W
+  const outBaseY = paRow * PA_FRAME_H
   for (let dy = 0; dy < PA_FRAME_H; dy++) {
     for (let dx = 0; dx < PA_FRAME_W; dx++) {
-      const [r, g, b, a] = sampleZepPixel(src, zepRow, zepCol, dx, dy)
-      const outX = paCol * PA_FRAME_W + dx
-      const outY = paRow * PA_FRAME_H + dy
-      setPixel(out, outX, outY, r, g, b, a)
+      const [r, g, b, a] = getPixel(src, srcBaseX + dx, srcBaseY + dy)
+      setPixel(out, outBaseX + dx, outBaseY + dy, r, g, b, a)
     }
   }
 }
