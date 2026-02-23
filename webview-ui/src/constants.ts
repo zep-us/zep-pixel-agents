@@ -26,7 +26,7 @@ export const MATRIX_SPRITE_ROWS = 24
 export const MATRIX_FLICKER_FPS = 30
 export const MATRIX_FLICKER_VISIBILITY_THRESHOLD = 180
 export const MATRIX_COLUMN_STAGGER_RANGE = 0.3
-export const MATRIX_HEAD_COLOR = '#ccffcc'
+export const MATRIX_HEAD_COLOR = '#74FADA'  // ZEP mint light (was #ccffcc)
 export const MATRIX_TRAIL_OVERLAY_ALPHA = 0.6
 export const MATRIX_TRAIL_EMPTY_ALPHA = 0.5
 export const MATRIX_TRAIL_MID_THRESHOLD = 0.33
@@ -52,20 +52,20 @@ export const BUBBLE_VERTICAL_OFFSET_PX = 48
 export const FALLBACK_FLOOR_COLOR = '#808080'
 
 // ── Rendering - Overlay Colors (canvas, not CSS) ─────────────
-export const SEAT_OWN_COLOR = 'rgba(0, 127, 212, 0.35)'
-export const SEAT_AVAILABLE_COLOR = 'rgba(0, 200, 80, 0.35)'
-export const SEAT_BUSY_COLOR = 'rgba(220, 50, 50, 0.35)'
-export const GRID_LINE_COLOR = 'rgba(255,255,255,0.12)'
-export const VOID_TILE_OUTLINE_COLOR = 'rgba(255,255,255,0.08)'
-export const VOID_TILE_DASH_PATTERN: [number, number] = [2, 2]
-export const GHOST_BORDER_HOVER_FILL = 'rgba(60, 130, 220, 0.25)'
-export const GHOST_BORDER_HOVER_STROKE = 'rgba(60, 130, 220, 0.5)'
-export const GHOST_BORDER_STROKE = 'rgba(255, 255, 255, 0.06)'
-export const GHOST_VALID_TINT = '#00ff00'
-export const GHOST_INVALID_TINT = '#ff0000'
-export const SELECTION_HIGHLIGHT_COLOR = '#007fd4'
-export const DELETE_BUTTON_BG = 'rgba(200, 50, 50, 0.85)'
-export const ROTATE_BUTTON_BG = 'rgba(50, 120, 200, 0.85)'
+export const SEAT_OWN_COLOR = 'rgba(103, 88, 255, 0.35)'        // ZEP primary
+export const SEAT_AVAILABLE_COLOR = 'rgba(21, 228, 191, 0.35)'  // ZEP mint
+export const SEAT_BUSY_COLOR = 'rgba(255, 83, 83, 0.35)'        // ZEP red
+export const GRID_LINE_COLOR = 'rgba(255,255,255,0.12)'          // keep
+export const VOID_TILE_OUTLINE_COLOR = 'rgba(255,255,255,0.08)'  // keep
+export const VOID_TILE_DASH_PATTERN: [number, number] = [2, 2]   // keep
+export const GHOST_BORDER_HOVER_FILL = 'rgba(103, 88, 255, 0.25)'   // ZEP primary
+export const GHOST_BORDER_HOVER_STROKE = 'rgba(103, 88, 255, 0.5)'  // ZEP primary
+export const GHOST_BORDER_STROKE = 'rgba(255, 255, 255, 0.06)'      // keep
+export const GHOST_VALID_TINT = '#15E4BF'                            // ZEP mint
+export const GHOST_INVALID_TINT = '#FF5353'                          // ZEP red
+export const SELECTION_HIGHLIGHT_COLOR = '#6758FF'                   // ZEP primary
+export const DELETE_BUTTON_BG = 'rgba(255, 83, 83, 0.85)'           // ZEP red
+export const ROTATE_BUTTON_BG = 'rgba(103, 88, 255, 0.85)'          // ZEP primary
 
 // ── Camera ───────────────────────────────────────────────────
 export const CAMERA_FOLLOW_LERP = 0.1
