@@ -1,7 +1,7 @@
 import { CharacterState, Direction, TILE_SIZE } from '../types.js'
 import type { Character, Seat, SpriteData, TileType as TileTypeVal } from '../types.js'
 import type { CharacterSprites } from '../sprites/spriteData.js'
-import { findPath } from '../layout/tileMap.js'
+import { findPath, isWalkable } from '../layout/tileMap.js'
 import {
   WALK_SPEED_PX_PER_SEC,
   WALK_FRAME_DURATION_SEC,
@@ -68,7 +68,7 @@ export function createCharacter(
     wanderTimer: 0,
     wanderCount: 0,
     wanderLimit: randomInt(WANDER_MOVES_BEFORE_REST_MIN, WANDER_MOVES_BEFORE_REST_MAX),
-    isActive: true,
+    isActive: false,
     seatId,
     bubbleType: null,
     bubbleTimer: 0,
@@ -164,9 +164,40 @@ export function updateCharacter(
             }
           }
         }
+        // Try to wander to a random walkable tile
         if (walkableTiles.length > 0) {
           const target = walkableTiles[Math.floor(Math.random() * walkableTiles.length)]
-          const path = findPath(ch.tileCol, ch.tileRow, target.col, target.row, tileMap, blockedTiles)
+          let path = findPath(ch.tileCol, ch.tileRow, target.col, target.row, tileMap, blockedTiles)
+          if (path.length === 0) {
+            // Character may be trapped at a blocked tile (seat surrounded by furniture).
+            // Check if any neighbor is walkable — if not, relocate to nearest walkable tile.
+            const neighbors = [
+              { c: ch.tileCol, r: ch.tileRow - 1 },
+              { c: ch.tileCol, r: ch.tileRow + 1 },
+              { c: ch.tileCol - 1, r: ch.tileRow },
+              { c: ch.tileCol + 1, r: ch.tileRow },
+            ]
+            const hasExit = neighbors.some(n => isWalkable(n.c, n.r, tileMap, blockedTiles))
+            if (!hasExit) {
+              // Find closest walkable tile by Manhattan distance and step there
+              let closest = walkableTiles[0]
+              let minDist = Math.abs(closest.col - ch.tileCol) + Math.abs(closest.row - ch.tileRow)
+              for (let i = 1; i < walkableTiles.length; i++) {
+                const d = Math.abs(walkableTiles[i].col - ch.tileCol) + Math.abs(walkableTiles[i].row - ch.tileRow)
+                if (d < minDist) {
+                  closest = walkableTiles[i]
+                  minDist = d
+                }
+              }
+              ch.tileCol = closest.col
+              ch.tileRow = closest.row
+              ch.x = closest.col * TILE_SIZE + TILE_SIZE / 2
+              ch.y = closest.row * TILE_SIZE + TILE_SIZE / 2
+              // Re-attempt pathfinding from the new position
+              const newTarget = walkableTiles[Math.floor(Math.random() * walkableTiles.length)]
+              path = findPath(ch.tileCol, ch.tileRow, newTarget.col, newTarget.row, tileMap, blockedTiles)
+            }
+          }
           if (path.length > 0) {
             ch.path = path
             ch.moveProgress = 0

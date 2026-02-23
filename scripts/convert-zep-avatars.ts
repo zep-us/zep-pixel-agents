@@ -7,35 +7,29 @@
  *   hair_0.png … hair_5.png       — hair layer      (432×256)
  *
  * ZEP layout: 9 cols × 4 rows of 48×64 frames (432×256 total)
- *   Row 0 = down  (frames  0-4  : idle, walk1, walk2, walk3, unused)
- *   Row 1 = left  (frames  5-9  : idle, walk1, walk2, walk3, unused)
- *   Row 2 = right (frames 10-14 : idle, walk1, walk2, walk3, unused)
- *   Row 3 = up    (frames 15-19 : idle, walk1, walk2, walk3, unused)
- *   Sit frames (row 4, cols 0-3): 32=down_sit, 33=left_sit, 34=right_sit, 35=up_sit
- *     (sit row is row index 4 in 0-based, but stored starting at y=256; actually
- *      ZEP sit frames live at row index 4: y = 4*64 = 256 — outside the 256px canvas.
- *      Per ZEP source the sit indices are 32-35 in a flat 9-col grid:
- *        index 32 → col=32%9=5, row=floor(32/9)=3  → but that puts it at row 3 which is "up".
- *      Verified mapping: sit frames are at 9-col flat index:
- *        32 → col 5 row 3, 33 → col 6 row 3, 34 → col 7 row 3, 35 → col 8 row 3)
+ *   Frames are addressed by FLAT INDEX in a 9-col grid:
+ *     flat index → col = index % 9, row = Math.floor(index / 9)
+ *
+ *   Flat indices per animation (from ZEP DEFAULT_ANIMS):
+ *     down_idle:  0          down_walk: 1,2,3,4     down_sit: 32
+ *     left_idle:  5          left_walk: 6,7,8,9     left_sit: 33
+ *     right_idle: 10         right_walk: 11,12,13,14 right_sit: 34
+ *     up_idle:    15         up_walk: 16,17,18,19   up_sit: 35
+ *     dance: 20-27           jumps: 28-31
  *
  * pixel-agents output: 8 cols × 3 rows of 48×64 frames (384×192 total)
  *   Row 0 = down, Row 1 = up, Row 2 = right (left flipped at runtime)
  *   Col order: walk1, walk2, walk3, walk4, type1, type2, read1, read2
  *
  * Frame mapping (per direction):
- *   ZEP walk1  → pa col 0 (walk1)
- *   ZEP walk2  → pa col 1 (walk2 / idle stand)
- *   ZEP walk3  → pa col 2 (walk3)
- *   ZEP sit    → pa col 3 (type1)
- *   ZEP sit    → pa col 4 (type2, duplicate)
- *   ZEP idle   → pa col 5 (read1)
- *   ZEP idle   → pa col 6 (read2, duplicate)
- *
- * Direction mapping:
- *   ZEP row 0 (down)  → pa row 0
- *   ZEP row 3 (up)    → pa row 1
- *   ZEP row 2 (right) → pa row 2
+ *   walk[0] → pa col 0 (walk1)
+ *   walk[1] → pa col 1 (walk2)
+ *   walk[2] → pa col 2 (walk3)
+ *   walk[3] → pa col 3 (walk4)
+ *   sit     → pa col 4 (type1)
+ *   sit     → pa col 5 (type2, duplicate)
+ *   idle    → pa col 6 (read1 / standing pose)
+ *   idle    → pa col 7 (read2, duplicate)
  *
  * Run: npx tsx scripts/convert-zep-avatars.ts
  */
@@ -50,19 +44,14 @@ import { PNG } from 'pngjs'
 const ZEP_FRAME_W = 48
 const ZEP_FRAME_H = 64
 const ZEP_COLS = 9   // 432 / 48
-// ZEP directions in row order: 0=down, 1=left, 2=right, 3=up
-// Within each row: col0=idle, col1=walk1, col2=walk2, col3=walk3, col4=unused
 
-// Sit frames: stored at flat frame index 32-35 in a 9-col grid
-// index → { col: index % 9, row: Math.floor(index / 9) }
-// 32 → col 5 row 3 (up-row), 33 → col 6 row 3, 34 → col 7 row 3, 35 → col 8 row 3
-// ZEP direction for sit: 32=down_sit, 33=left_sit, 34=right_sit, 35=up_sit
-const ZEP_SIT: Record<number, { flatIndex: number }> = {
-  0: { flatIndex: 32 }, // down sit
-  1: { flatIndex: 33 }, // left sit
-  2: { flatIndex: 34 }, // right sit
-  3: { flatIndex: 35 }, // up sit
-}
+// ZEP flat indices per direction (from DEFAULT_ANIMS)
+const ZEP_FRAMES = {
+  down:  { idle: 0,  walk: [1, 2, 3, 4],     sit: 32 },
+  left:  { idle: 5,  walk: [6, 7, 8, 9],     sit: 33 },
+  right: { idle: 10, walk: [11, 12, 13, 14], sit: 34 },
+  up:    { idle: 15, walk: [16, 17, 18, 19], sit: 35 },
+} as const
 
 // ---------------------------------------------------------------------------
 // pixel-agents output constants
@@ -70,11 +59,8 @@ const ZEP_SIT: Record<number, { flatIndex: number }> = {
 const PA_FRAME_W = 48
 const PA_FRAME_H = 64
 const PA_COLS = 8
-// pa row → zep row
-// pa row 0 (down)  → zep row 0
-// pa row 1 (up)    → zep row 3
-// pa row 2 (right) → zep row 2
-const PA_DIR_TO_ZEP_ROW = [0, 3, 2] as const
+// pixel-agents direction rows: 0=down, 1=up, 2=right (left flipped at runtime)
+const PA_DIR_ORDER = ['down', 'up', 'right'] as const
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -141,25 +127,18 @@ function compositeLayers(layers: PNG[]): PNG {
 }
 
 /**
- * Copy one ZEP frame (1:1, no scaling) into the output PNG.
- * Since PA_FRAME_W === ZEP_FRAME_W and PA_FRAME_H === ZEP_FRAME_H,
- * this is a direct pixel copy with no resampling.
- *
- * @param src      Composited ZEP spritesheet (432×256)
- * @param out      Output pixel-agents PNG (336×192)
- * @param zepRow   ZEP direction row
- * @param zepCol   ZEP column within that row
- * @param paRow    pixel-agents output row
- * @param paCol    pixel-agents output column
+ * Copy a ZEP frame by FLAT INDEX into the output PNG.
+ * Flat index is converted to col/row in the 9-column grid.
  */
-function copyFrame(
+function copyFlatFrame(
   src: PNG,
   out: PNG,
-  zepRow: number,
-  zepCol: number,
+  flatIndex: number,
   paRow: number,
   paCol: number,
 ): void {
+  const zepCol = flatIndex % ZEP_COLS
+  const zepRow = Math.floor(flatIndex / ZEP_COLS)
   const srcBaseX = zepCol * ZEP_FRAME_W
   const srcBaseY = zepRow * ZEP_FRAME_H
   const outBaseX = paCol * PA_FRAME_W
@@ -170,21 +149,6 @@ function copyFrame(
       setPixel(out, outBaseX + dx, outBaseY + dy, r, g, b, a)
     }
   }
-}
-
-/**
- * Copy a ZEP sit frame (accessed via flat index → col/row in 9-col grid).
- */
-function copySitFrame(
-  src: PNG,
-  out: PNG,
-  sitFlatIndex: number,
-  paRow: number,
-  paCol: number,
-): void {
-  const zepCol = sitFlatIndex % ZEP_COLS
-  const zepRow = Math.floor(sitFlatIndex / ZEP_COLS)
-  copyFrame(src, out, zepRow, zepCol, paRow, paCol)
 }
 
 // ---------------------------------------------------------------------------
@@ -214,31 +178,26 @@ for (let i = 0; i < 6; i++) {
   const composited = compositeLayers(layers)
 
   // 2. Build the pixel-agents output (384×192)
-  const out = new PNG({ width: PA_FRAME_W * PA_COLS, height: PA_FRAME_H * PA_DIR_TO_ZEP_ROW.length })
+  const out = new PNG({ width: PA_FRAME_W * PA_COLS, height: PA_FRAME_H * PA_DIR_ORDER.length })
   // Zero-fill (transparent)
   out.data.fill(0)
 
-  for (let paRow = 0; paRow < PA_DIR_TO_ZEP_ROW.length; paRow++) {
-    const zepRow = PA_DIR_TO_ZEP_ROW[paRow]
-    const sitFlatIndex = ZEP_SIT[zepRow].flatIndex
+  for (let paRow = 0; paRow < PA_DIR_ORDER.length; paRow++) {
+    const dir = PA_DIR_ORDER[paRow]
+    const frames = ZEP_FRAMES[dir]
 
-    // ZEP col offsets within a direction row: 0=idle, 1=walk1, 2=walk2, 3=walk3, 4=walk4
-    // pa col 0: walk1 → zep col 1
-    copyFrame(composited, out, zepRow, 1, paRow, 0)
-    // pa col 1: walk2 → zep col 2
-    copyFrame(composited, out, zepRow, 2, paRow, 1)
-    // pa col 2: walk3 → zep col 3
-    copyFrame(composited, out, zepRow, 3, paRow, 2)
-    // pa col 3: walk4 → zep col 4
-    copyFrame(composited, out, zepRow, 4, paRow, 3)
+    // pa col 0-3: walk frames
+    for (let w = 0; w < 4; w++) {
+      copyFlatFrame(composited, out, frames.walk[w], paRow, w)
+    }
     // pa col 4: type1 → sit frame
-    copySitFrame(composited, out, sitFlatIndex, paRow, 4)
+    copyFlatFrame(composited, out, frames.sit, paRow, 4)
     // pa col 5: type2 → sit frame (duplicate)
-    copySitFrame(composited, out, sitFlatIndex, paRow, 5)
-    // pa col 6: read1 → zep idle (col 0) = standing pose
-    copyFrame(composited, out, zepRow, 0, paRow, 6)
-    // pa col 7: read2 → zep idle (duplicate)
-    copyFrame(composited, out, zepRow, 0, paRow, 7)
+    copyFlatFrame(composited, out, frames.sit, paRow, 5)
+    // pa col 6: read1 → idle (standing pose)
+    copyFlatFrame(composited, out, frames.idle, paRow, 6)
+    // pa col 7: read2 → idle (duplicate)
+    copyFlatFrame(composited, out, frames.idle, paRow, 7)
   }
 
   // 3. Write output
