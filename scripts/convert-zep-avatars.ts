@@ -19,7 +19,7 @@
  *      Verified mapping: sit frames are at 9-col flat index:
  *        32 → col 5 row 3, 33 → col 6 row 3, 34 → col 7 row 3, 35 → col 8 row 3)
  *
- * pixel-agents output: 7 cols × 3 rows of 24×32 frames (168×96 total)
+ * pixel-agents output: 7 cols × 3 rows of 48×64 frames (336×192 total)
  *   Row 0 = down, Row 1 = up, Row 2 = right (left flipped at runtime)
  *   Col order: walk1, walk2(=idle), walk3, type1, type2, read1, read2
  *
@@ -67,8 +67,8 @@ const ZEP_SIT: Record<number, { flatIndex: number }> = {
 // ---------------------------------------------------------------------------
 // pixel-agents output constants
 // ---------------------------------------------------------------------------
-const PA_FRAME_W = 24
-const PA_FRAME_H = 32
+const PA_FRAME_W = 48
+const PA_FRAME_H = 64
 const PA_COLS = 7
 // pa row → zep row
 // pa row 0 (down)  → zep row 0
@@ -141,11 +141,12 @@ function compositeLayers(layers: PNG[]): PNG {
 }
 
 /**
- * Copy one ZEP frame into the output PNG using nearest-neighbor downscaling.
- * ZEP frames are 48×64; PA frames are 24×32 (2:1 ratio).
+ * Copy one ZEP frame (1:1, no scaling) into the output PNG.
+ * Since PA_FRAME_W === ZEP_FRAME_W and PA_FRAME_H === ZEP_FRAME_H,
+ * this is a direct pixel copy with no resampling.
  *
  * @param src      Composited ZEP spritesheet (432×256)
- * @param out      Output pixel-agents PNG (168×96)
+ * @param out      Output pixel-agents PNG (336×192)
  * @param zepRow   ZEP direction row
  * @param zepCol   ZEP column within that row
  * @param paRow    pixel-agents output row
@@ -163,13 +164,9 @@ function copyFrame(
   const srcBaseY = zepRow * ZEP_FRAME_H
   const outBaseX = paCol * PA_FRAME_W
   const outBaseY = paRow * PA_FRAME_H
-  const scaleX = ZEP_FRAME_W / PA_FRAME_W  // 2
-  const scaleY = ZEP_FRAME_H / PA_FRAME_H  // 2
   for (let dy = 0; dy < PA_FRAME_H; dy++) {
     for (let dx = 0; dx < PA_FRAME_W; dx++) {
-      const sx = srcBaseX + Math.floor((dx + 0.5) * scaleX)
-      const sy = srcBaseY + Math.floor((dy + 0.5) * scaleY)
-      const [r, g, b, a] = getPixel(src, sx, sy)
+      const [r, g, b, a] = getPixel(src, srcBaseX + dx, srcBaseY + dy)
       setPixel(out, outBaseX + dx, outBaseY + dy, r, g, b, a)
     }
   }
